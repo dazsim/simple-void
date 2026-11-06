@@ -8,6 +8,7 @@ import com.workshopcraft.simplevoid.start.StartConfig;
 import com.workshopcraft.simplevoid.start.StartState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.permissions.Permissions;
@@ -18,7 +19,7 @@ public final class VoidCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("void").requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                 .then(Commands.literal("place")
-                        .then(Commands.argument("setup_or_placement", StringArgumentType.word())
+                        .then(Commands.argument("setup_or_placement", IdentifierArgument.id())
                                 .executes(context -> place(context, null))
                                 .then(Commands.argument("placement", StringArgumentType.word())
                                         .executes(context -> place(context, StringArgumentType.getString(context, "placement")))))));
@@ -26,7 +27,9 @@ public final class VoidCommands {
 
     private static int place(CommandContext<CommandSourceStack> context, String named) {
         var source = context.getSource();
-        String target = StringArgumentType.getString(context, "setup_or_placement");
+        String target = context.getNodes().stream()
+                .filter(node -> node.getNode().getName().equals("setup_or_placement"))
+                .map(node -> node.getRange().get(context.getInput())).findFirst().orElseThrow();
         try {
             Identifier setup;
             String placement = named;

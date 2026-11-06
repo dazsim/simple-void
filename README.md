@@ -216,17 +216,29 @@ The committed version is `0.1.0`. The NeoForge jar is under
 load registries, codecs, templates, conditions and saved data only; they do not
 construct worlds or start a Minecraft server/client.
 
-## Validation still needed
+## Validation
 
-Compile and headless checks are not an in-game test. No shared-server tests or
-screenshots have been run. ModDev's lock is required before either game process.
+NeoForge 26.1.2 smoke passed on 6 Nov 2026 with the `0.1.0-alpha.1` dedicated
+server jar and matching development client. All 17 in-game checks passed: fresh
+void setup, exact island spawn, two entirely empty terrain chunks, distant pad
+position/rotation, deferred condition gating, command placement, namespaced setup
+commands and duplicate suppression with player edits preserved. The saved file
+contained all three placement markers after shutdown. The 63 headless checks
+also passed.
 
-When a slot is available: verify default spawn and distant pad; travel into empty
-terrain; test a normal world; edit blocks and restart to check persistence; join
-as a second player and test death/bed respawns; test the ship's interior spawn;
-place a named entry and a whole setup twice; unlock the deferred scoreboard
-condition; reload data and confirm no automatic placement; try fixed/relative
-rotations, custom templates and invalid/unsafe setups.
+Real client screenshots and `SMOKE-RESULTS.txt` are in
+`/workspace/mods/simplevoid-dist/0.1.0-alpha.1/`. The first smoke caught a command
+parser bug with namespaced ids; `IdentifierArgument` replaced the restricted word
+argument, and both the headless parser regressions and in-game retest passed.
 
-Homebound's production ship, named areas, repairs, hazards and animated sky are
-later work. Simple Books and skyblock resource progression are untouched.
+The repeatable harness is `tools/smoke-simplevoid.sh`, installed as
+`/workspace/mods/smoke/simplevoid-m1.sh`, with `tools/smoke-client.gradle` supplying
+client launch arguments. It sources `sm-b-lib.sh`, uses isolated fresh run
+folders, takes read-only X11 client captures, and traps exit/failure to stop only
+its own server/client. ModDev's shared test lock is required before every run.
+The lock file is read-only for this script.
+
+Further coverage is still needed for the production ship, ship interior spawns,
+bed/anchor respawns, a normal world, full save/reload play sessions and other
+loaders. Homebound's named areas, repairs, hazards and animated sky are later
+work. Simple Books and skyblock resource progression are untouched.

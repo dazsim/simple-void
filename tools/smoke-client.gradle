@@ -1,0 +1,9 @@
+allprojects {
+    afterEvaluate { p ->
+        if (p.path == ':neoforge:26.1.2') {
+            p.neoForge.runs.client.programArguments.addAll('--quickPlayMultiplayer', '127.0.0.1:25671',
+                    '--username', 'Dev', '--width', '1280', '--height', '720')
+            p.neoForge.runs.client.gameDirectory.set(new File(System.getenv('SIMPLEVOID_CLIENT_DIR')))
+        }
+    }
+}

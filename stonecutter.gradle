@@ -1,10 +1,9 @@
 plugins {
     id 'dev.kikugie.stonecutter'
-    id 'base'
     id 'net.neoforged.moddev' version '2.0.141' apply false
 }
 
 stonecutter.active '26.1.2'
 
-tasks.named('build') { dependsOn ':common:26.1.2:build', ':neoforge:26.1.2:build' }
-tasks.named('clean') { dependsOn ':common:26.1.2:clean', ':neoforge:26.1.2:clean' }
+tasks.register('build') { dependsOn ':common:26.1.2:build', ':neoforge:26.1.2:build' }
+tasks.register('clean') { dependsOn ':common:26.1.2:clean', ':neoforge:26.1.2:clean' }

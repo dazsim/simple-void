@@ -13,6 +13,7 @@ import com.workshopcraft.simplevoid.setup.PlacementCondition;
 import com.workshopcraft.simplevoid.command.VoidCommands;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.ScoreHolder;
@@ -216,6 +217,13 @@ public final class ResourceChecks {
         CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
         VoidCommands.register(dispatcher);
         check(dispatcher.getRoot().getChild("void").getChild("place") != null, "Placement command registered");
+        CommandDispatcher<CommandSourceStack> parser = new CommandDispatcher<>();
+        parser.register(Commands.literal("void").then(dispatcher.getRoot().getChild("void").getChild("place")));
+        for (String command : List.of("void place simplevoid:skyblock", "void place simplevoid:skyblock distant_example",
+                "void place later_example", "void place homebound:ships/colony room")) {
+            var parsed = parser.parse(command, null);
+            check(!parsed.getReader().canRead() && parsed.getExceptions().isEmpty(), "Command parses " + command);
+        }
         check(Modifier.isStatic(MinecraftServer.class.getDeclaredMethod("setInitialSpawn", ServerLevel.class,
                 ServerLevelData.class, boolean.class, boolean.class, LevelLoadListener.class).getModifiers()), "Initial spawn mixin target");
         check(Modifier.isStatic(PlayerSpawnFinder.class.getDeclaredMethod("findSpawn", ServerLevel.class, BlockPos.class).getModifiers()), "Player spawn mixin target");
