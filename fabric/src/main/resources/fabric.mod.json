@@ -4,15 +4,27 @@
   "version": "${version}",
   "name": "${mod_name}",
   "description": "${description}",
-  "authors": ["${mod_author}"],
-  "license": "${license}",
+  "authors": [
+    "${mod_author}"
+  ],
+  "license": "All Rights Reserved",
   "environment": "*",
-  "entrypoints": {"main": ["com.workshopcraft.simplevoid.fabric.SimpleVoidFabric"]},
-  "mixins": ["simplevoid.mixins.json"],
+  "entrypoints": {
+    "main": [
+      "com.workshopcraft.simplevoid.fabric.SimpleVoidFabric"
+    ]
+  },
+  "mixins": [
+    "simplevoid.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
     "minecraft": "${fabric_minecraft_range}",
     "java": ">=${java_version}"
+  },
+  "contact": {
+    "sources": "https://github.com/dazsim/simple-void",
+    "issues": "https://github.com/dazsim/simple-void/issues"
   }
 }

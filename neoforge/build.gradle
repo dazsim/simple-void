@@ -57,3 +57,21 @@ sourceSets.configureEach {
 }
 
 tasks.named('createMinecraftArtifacts') { dependsOn 'stonecutterGenerate' }
+
+sourceSets {
+    validation {
+        java.srcDir rootProject.file('tools/neoforge-java')
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath + compileClasspath
+    }
+}
+
+tasks.register('validateAreaEvents', JavaExec) {
+    group = 'verification'
+    description = 'Validate the NeoForge area-event bridge without starting Minecraft.'
+    dependsOn tasks.named('validationClasses')
+    classpath = sourceSets.validation.runtimeClasspath
+    mainClass = 'com.workshopcraft.simplevoid.neoforge.NeoForgeAreaChecks'
+    workingDir layout.buildDirectory.dir('validation')
+    doFirst { workingDir.mkdirs() }
+}

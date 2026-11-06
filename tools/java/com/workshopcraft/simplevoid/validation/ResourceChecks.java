@@ -227,6 +227,7 @@ public final class ResourceChecks {
         check(Modifier.isStatic(MinecraftServer.class.getDeclaredMethod("setInitialSpawn", ServerLevel.class,
                 ServerLevelData.class, boolean.class, boolean.class, LevelLoadListener.class).getModifiers()), "Initial spawn mixin target");
         check(Modifier.isStatic(PlayerSpawnFinder.class.getDeclaredMethod("findSpawn", ServerLevel.class, BlockPos.class).getModifiers()), "Player spawn mixin target");
+        checks += AreaChecks.run(temporary, lookup, skyblock);
         System.out.println("Passed " + checks + " headless resource and configuration checks. No server or client started.");
     }
 

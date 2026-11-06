@@ -1,10 +1,16 @@
 # Simple Void
 
-M1 for Minecraft 26.1 to 26.1.2, Java 25, NeoForge. Mod id: `simplevoid`.
+Version 1.0.0 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
+
+By dazsim / workshopcraft. All Rights Reserved.
+
+Source: https://github.com/dazsim/simple-void
+Issues: https://github.com/dazsim/simple-void/issues
 
 A void world preset with reusable, data-driven world setups. A setup places
 several named structures at world creation or later through a command or API.
-One placement is the spawn structure. No custom blocks, items, recipes, portals,
+One placement is the spawn structure. Named areas attached to placements have
+persistent states, change events and optional command hooks. No custom blocks, items, recipes, portals,
 quests, resource progression, hazards or space backdrop are added. Hull and
 boundary blocks belong to the Simple Machines ship blocks add-on.
 
@@ -169,6 +175,172 @@ Player edits are preserved. Keep names stable: renaming a setup or placement
 creates a new identity and can place another copy. There is no force/replacement
 command. As with other world data, durability depends on saving the world.
 
+## Named areas
+
+Add `areas` to a placement in its existing world setup JSON. The data pack and
+config paths are the same as above. For example, inside the `ship` placement:
+
+```json
+"areas": [
+  {
+    "name": "bridge",
+    "bounds": {"min": [1, 1, 1], "max": [7, 3, 9]},
+    "initial_state": "damaged",
+    "on_state_change": {
+      "enabled": true,
+      "commands": {
+        "repaired": [
+          "place template homebound:colony_ship_repaired {x} {y} {z} {rotation}"
+        ]
+      }
+    }
+  }
+]
+```
+
+- `areas` is optional, default empty, at most 128 per placement. Names are unique
+  within that placement: 1 to 64 lowercase letters, digits, `_` or `-`.
+- `bounds.min` and `bounds.max` are inclusive integer block coordinates in the
+  unrotated template's local space. Both rotate around local `[0,0,0]` and translate
+  by the actual saved placement origin. Bounds may surround the template, but
+  must stay within world height/border. Local coordinates are within +/-4096,
+  with at most 4096 blocks per axis. Reversed bounds are invalid.
+- `initial_state` defaults to `damaged`. `repaired` is conventional, not special.
+  Other states are supported without code: 1 to 64 lowercase letters, digits,
+  `_`, `-` or `.`. No hazards or automatic block replacement are implied by a state.
+- `on_state_change` is optional. Its `enabled` defaults to false, even when
+  commands are supplied. `commands` maps the **new state** to an ordered list,
+  at most 64 state entries and 32 nonempty single-line commands per state.
+
+The canonical id is `<setup id>/<placement name>/<area name>`, such as
+`homebound:colony/ship/bridge`. A bare area name works only when unique in the
+command's dimension. Ambiguous names fail with the matching full ids. Dimension
+scopes are independent; state is shared by all players there, not per player/team.
+
+Areas are registered only after their structure is successfully placed. Deferred
+and condition-failed placements have no areas yet. Definitions, transformed
+bounds, origin, rotation, hook data and current state are snapshotted in
+per-dimension saved data `simplevoid:areas`, separate from M1's unchanged
+`simplevoid:start`. A restart does not reset states or run hooks. Keep ids stable.
+
+On upgrade from M1, the current setup definition supplies areas for already-saved
+placements, using their **saved** positions/rotations, without replacing any
+blocks. Import runs at server start and before API/command queries. Missing setup
+resources log a warning and can be retried after fixing the pack. Each placement
+is imported once, including an empty area list. Later JSON edits do not silently
+reset existing snapshots, add/remove areas or alter their hooks. Back up worlds
+before upgrading or editing saved data. There is no destructive reset command.
+
+### Area commands
+
+All require operator level 2 or equivalent. They run in the source dimension:
+
+```text
+/void area list
+/void area get bridge
+/void area set homebound:colony/ship/bridge repaired
+/execute in minecraft:overworld run void area set homebound:colony/ship/bridge repaired
+```
+
+`list` shows canonical ids and states; `get` also shows inclusive world bounds.
+Unknown/ambiguous names or invalid states fail without mutation. Setting the
+current state succeeds without firing another event or rerunning commands.
+
+The bundled island, distant pad and deferred pad define `island`, `distant_pad`
+and `deferred_pad`; the demonstration ship defines `cabin`. All start damaged,
+with no hooks. These names are examples and do not add gameplay restrictions.
+
+### Hooks and events
+
+A real transition marks the new state for saving, fires change listeners
+synchronously, then submits the commands for that new state to Minecraft's
+command executor. When called inside another command/function, Minecraft may
+queue hook execution until that command returns. Initialization/import does not count as a
+change. Commands use a non-player server source at the saved structure origin,
+in the area's dimension, at permission level **2**, with output suppressed.
+`@s` has no entity. Selectors, functions and normal command permissions still
+apply. Use `execute as` explicitly if a hook needs a player. Relative `~` positions
+use the structure origin; they are world axes, not automatically rotated axes.
+
+Supported substitutions: `{area}` (canonical id), `{state}`, `{previous}`, `{x}`,
+`{y}`, `{z}` (structure origin), and `{rotation}` (vanilla rotation token). For a
+rotated replacement template, pass all four position/rotation tokens as above.
+The replacement template is supplied by the pack, not by this mod. Template
+commands can overwrite player builds and entities, including outside the named
+area. Only enable trusted pack commands, and design variants with matching bounds.
+
+State remains committed if a listener or hook fails. Failures are logged, later
+common listeners/commands continue, and hooks are not automatically retried or
+rolled back. A crash before saving can lose a transition; command side effects
+are not transactional or guaranteed exactly-once across crashes. Nested state
+changes directly inside change listeners are rejected; read queries are allowed.
+Hook commands can trigger further area transitions and follow vanilla command
+ordering and chain/fork limits. Avoid cyclic state-changing hooks and never
+raise those limits to work around a loop. A repeated same-state set is a harmless
+no-op. A hook queued before another state change is not cancelled by that change.
+
+### Public area API
+
+Server thread only. Classes are under `com.workshopcraft.simplevoid.api`:
+
+```java
+VoidAreas.listAreas(level); // immutable, sorted List<VoidArea>
+VoidAreas.getArea(level, "bridge"); // immutable snapshot
+VoidAreas.getState(level, Identifier.parse("homebound:colony/ship/bridge"));
+boolean changed = VoidAreas.setState(level, "bridge", "repaired");
+var subscription = VoidAreaEvents.listen(change -> {
+    // change.level(), change.before(), change.after()
+});
+subscription.close();
+```
+
+`getArea`, `getState` and `setState` accept a short/full string or an `Identifier`.
+An `Identifier` is always a canonical id. Unknown/ambiguous names throw
+`IllegalArgumentException`; wrong-thread/nested mutation throws
+`IllegalStateException` for listener re-entry. State changes return false for a no-op, true for a
+committed transition. `VoidArea` includes id, name, owning placement, origin,
+rotation, world bounds, state and hook snapshot; `bounds().contains(blockPos)`
+uses inclusive block bounds. Returned snapshots never mutate in place.
+
+`VoidAreaEvents.StateChange` is loader-neutral, non-cancellable and contains the
+level and immutable before/after snapshots. `listen` returns a closeable
+subscription. Runtime listener failures are isolated and logged. On NeoForge,
+every transition is also posted to `NeoForge.EVENT_BUS` as
+`com.workshopcraft.simplevoid.neoforge.AreaStateChangedEvent`, with `getLevel()`,
+`getBefore()` and `getAfter()`. NeoForge's bus controls its subscriber ordering
+and exception handling. There is no Simple Books dependency or custom reward
+registration required for commands.
+
+### Simple Books quest rewards
+
+Simple Books already accepts command rewards in a quest's `rewards`,
+`choose_one`, or tier `rewards`. For a pack-defined bridge area:
+
+```json
+"rewards": [
+  {
+    "command": "execute in minecraft:overworld run void area set homebound:colony/ship/bridge repaired",
+    "label": "Repair the bridge",
+    "icon": "minecraft:iron_ingot"
+  }
+]
+```
+
+Commands execute on the server **as the claiming player**, with their dimension,
+position and `@s`, but elevated to `command_reward_permission` in
+`config/simplebooks.json` (default 2, allowed 0 to 4). The player need not be an
+operator. Keep that setting at least 2 for `/void area`; use `execute in` to
+address the right dimension. Output is hidden. Claims are per player and recorded
+before rewards run; a command failure does not automatically unclaim or retry.
+Simple Void's idempotent same-state behavior prevents later team members from
+rerunning repair hooks on an already-repaired world area.
+
+A quest detail page's claim button uses this reward flow. Merely opening an
+ordinary guide page does not grant a reward or run a command. No Simple Books
+engine change is needed for quest-command integration. Simple Books was inspected
+read-only; its content and code were not changed. Exact commit and file/line
+evidence are recorded in `tools/simplebooks-command-rewards.txt`.
+
 ## Spawn behaviour
 
 Automatic placement happens before vanilla's initial spawn search, once at world
@@ -191,11 +363,11 @@ branch `master`. There are no other Minecraft versions configured.
 
 - `stonecutter.gradle`, `settings.gradle`: controller and version/branch graph.
 - `common/src`: shared preset, biome, setup data, templates, placement API,
-  configuration, commands, saved data and spawn mixins.
+  configuration, commands, areas, saved data, common events and spawn mixins.
 - `common/versions/26.1.2`: common build node.
 - `neoforge/src`, `neoforge/versions/26.1.2`: loader entrypoint and release node.
 - `fabric`: retained source/metadata scaffold, not an enabled Stonecutter node
-  and not built or shipped in this alpha.
+  and not built or shipped in this release.
 - `build-logic`, `gradle`: sibling build conventions and wrapper, adapted for
   Stonecutter. Dependency versions remain in `gradle.properties` for this one node.
 - `tools`: deterministic vanilla-template generation and headless validation.
@@ -207,10 +379,11 @@ export PATH=$JAVA_HOME/bin:$PATH
 ./gradlew -q build -x test -x javadoc
 python3 tools/verify_resources.py
 ./gradlew -q :common:26.1.2:validateResources -x test -x javadoc
-./gradlew -q build -x test -x javadoc -Pversion=0.1.0-alpha.1
+./gradlew -q :neoforge:26.1.2:validateAreaEvents -x test -x javadoc
+./gradlew -q :neoforge:26.1.2:build -x test -x javadoc -Pversion=1.0.0
 ```
 
-The committed version is `0.1.0`. The NeoForge jar is under
+The committed version is `1.0.0`. The NeoForge jar is under
 `neoforge/versions/26.1.2/build/libs`. No Fabric build is included.
 `tools/generate_structures.py` recreates the vanilla templates. Headless checks
 load registries, codecs, templates, conditions and saved data only; they do not
@@ -240,5 +413,11 @@ The lock file is read-only for this script.
 
 Further coverage is still needed for the production ship, ship interior spawns,
 bed/anchor respawns, a normal world, full save/reload play sessions and other
-loaders. Homebound's named areas, repairs, hazards and animated sky are later
-work. Simple Books and skyblock resource progression are untouched.
+loaders. All 221 headless checks passed for 1.0.0: 63 existing resource checks, 155 area
+checks, and 3 checks of the actual NeoForge event-bus bridge. They cover
+persistence, migration, rotated bounds, hooks, events and command permissions, but no new server/client run was
+authorized for this release. In-game M2 and M1-to-1.0.0 upgrade testing remain
+required before public distribution.
+
+M3 area hazards and M4 animated sky are planned for 1.1.0. Simple Books and
+skyblock resource progression are untouched. No custom artwork or icon is bundled.

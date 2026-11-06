@@ -2,6 +2,9 @@ package com.workshopcraft.simplevoid.start;
 
 import com.mojang.logging.LogUtils;
 import com.workshopcraft.simplevoid.SimpleVoid;
+import com.workshopcraft.simplevoid.api.VoidArea;
+import com.workshopcraft.simplevoid.area.AreaEngine;
+import com.workshopcraft.simplevoid.area.AreaSavedData;
 import com.workshopcraft.simplevoid.api.VoidPlacements;
 import com.workshopcraft.simplevoid.setup.StructurePlacement;
 import com.workshopcraft.simplevoid.setup.WorldSetup;
@@ -40,7 +43,9 @@ public final class PlacementEngine {
                     .orElseThrow(() -> new IllegalStateException("Missing structure for " + id + "/" + placement.name() + ": " + placement.structure()));
             StructurePlaceSettings settings = new StructurePlaceSettings().setRotation(placement.rotation()).setIgnoreEntities(false);
             validateBounds(level, template.getSize(), template.getBoundingBox(settings, origin));
-            plans.add(new Plan(placement, template, settings, origin));
+            var areas = AreaEngine.prepare(placement.key(id), new StartState.Placed(placement.structure(), origin, placement.rotation()), placement);
+            AreaEngine.validate(level, areas);
+            plans.add(new Plan(placement, template, settings, origin, areas));
         }
         if (creation && skipped.contains(setup.spawn().placement())) {
             throw new IllegalStateException("Spawn structure condition did not pass: " + setup.spawn().placement());
@@ -51,6 +56,7 @@ public final class PlacementEngine {
                 throw new IllegalStateException("Could not place " + id + "/" + plan.placement.name());
             }
             state.complete(plan.placement.key(id), new StartState.Placed(plan.placement.structure(), plan.origin, plan.placement.rotation()));
+            AreaSavedData.get(level).importPlacement(plan.placement.key(id), plan.areas);
             placed.add(plan.placement.name());
             LogUtils.getLogger().info("Simple Void placed {}/{} ({}) at {}", id, plan.placement.name(), plan.placement.structure(), plan.origin);
         }
@@ -70,5 +76,5 @@ public final class PlacementEngine {
         }
     }
 
-    private record Plan(StructurePlacement placement, StructureTemplate template, StructurePlaceSettings settings, BlockPos origin) {}
+    private record Plan(StructurePlacement placement, StructureTemplate template, StructurePlaceSettings settings, BlockPos origin, List<VoidArea> areas) {}
 }

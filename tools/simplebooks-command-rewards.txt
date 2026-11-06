@@ -1,0 +1,42 @@
+Simple Books command reward inspection
+Read-only checkout: /workspace/mods/simplebooks-261
+Inspected commit: 3fc42b6913260cfedb78757b696893fa7b4090b8
+Inspected 6 Nov 2026, Europe/London. No Simple Books files changed by this task.
+All file paths below are relative to that checkout at this commit.
+
+SUPPORTED: quest command rewards, claimed from quest detail pages.
+QuestParser.java is src/main/java/com/workshopcraft/simplebooks/quest/QuestParser.java.
+  Lines 646-651 parse rewards and choose_one.
+  Lines 679-680 parse tier rewards.
+  Lines 948-953 accept a nonblank command string with optional label/icon.
+
+src/main/java/com/workshopcraft/simplebooks/client/QuestSlots.java:1040
+  Claim button sends Act("claim", quest, ...).
+src/main/java/com/workshopcraft/simplebooks/quest/QuestActionPacket.java:53
+  Server routes claim to QuestEngine.claim(player, quest, number).
+src/main/java/com/workshopcraft/simplebooks/quest/QuestEngine.java:1120-1152
+  Server checks completion and prior claims. Claims are per player.
+  Lines 1140 and 1147 record the claim before line 1150 grants rewards.
+src/main/java/com/workshopcraft/simplebooks/quest/QuestEngine.java:1182-1185
+  Command reward strips an optional slash, then calls QuestMc.run with
+  QuestMc.source(player, SimpleBooksConfig.get().commandRewardPermission()).
+src/main/java/com/workshopcraft/simplebooks/quest/QuestMc.java:138-149
+  Builds the claiming player's command source, overrides its permission set
+  to PermissionLevel.byId(level), suppresses output, and executes server-side
+  with performPrefixedCommand. The source retains player, position, dimension
+  and @s. It does not require the claimant to be an operator.
+src/main/java/com/workshopcraft/simplebooks/SimpleBooksConfig.java:19,28,65-68
+  config/simplebooks.json, command_reward_permission: default 2, allowed 0 to 4.
+
+Recommended quest fragment:
+{"rewards":[{"command":"execute in minecraft:overworld run void area set homebound:colony/ship/bridge repaired","label":"Repair the bridge","icon":"minecraft:iron_ingot"}]}
+The pack must define that setup/placement/area id. Keep permission >=2.
+Use execute in because Simple Books retains the claimant's current dimension.
+Simple Void repeated same-state sets do not fire events/hooks a second time.
+A failed command does not automatically undo the Simple Books claim or retry it.
+
+Ordinary guide-page opening has no independent reward/command path in the
+inspected source. A quest detail page's Claim button uses the supported flow.
+
+Change request to Simple Books bot: none needed for quest command rewards.
+This integration needs only pack quest data. No message was sent to its bot.

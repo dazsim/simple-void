@@ -20,7 +20,25 @@
         ]
       },
       "rotation": "none",
-      "at_creation": true
+      "at_creation": true,
+      "areas": [
+        {
+          "name": "cabin",
+          "bounds": {
+            "min": [
+              1,
+              1,
+              1
+            ],
+            "max": [
+              7,
+              3,
+              9
+            ]
+          },
+          "initial_state": "damaged"
+        }
+      ]
     }
   ]
 }

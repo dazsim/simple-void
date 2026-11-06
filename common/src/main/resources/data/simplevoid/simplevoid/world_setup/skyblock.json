@@ -20,7 +20,25 @@
         ]
       },
       "rotation": "none",
-      "at_creation": true
+      "at_creation": true,
+      "areas": [
+        {
+          "name": "island",
+          "bounds": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              8,
+              8,
+              8
+            ]
+          },
+          "initial_state": "damaged"
+        }
+      ]
     },
     {
       "name": "distant_example",
@@ -33,7 +51,25 @@
         ]
       },
       "rotation": "clockwise_90",
-      "at_creation": true
+      "at_creation": true,
+      "areas": [
+        {
+          "name": "distant_pad",
+          "bounds": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              4,
+              2,
+              4
+            ]
+          },
+          "initial_state": "damaged"
+        }
+      ]
     },
     {
       "name": "later_example",
@@ -53,7 +89,25 @@
           "holder": "#world",
           "min": 1
         }
-      }
+      },
+      "areas": [
+        {
+          "name": "deferred_pad",
+          "bounds": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              4,
+              2,
+              4
+            ]
+          },
+          "initial_state": "damaged"
+        }
+      ]
     }
   ]
 }
