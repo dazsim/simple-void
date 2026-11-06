@@ -1,0 +1,14 @@
+{
+  "structure": "simplevoid:island",
+  "origin": [
+    0,
+    64,
+    0
+  ],
+  "spawn_offset": [
+    4,
+    3,
+    2
+  ],
+  "yaw": 0
+}

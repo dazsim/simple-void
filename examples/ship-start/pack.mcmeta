@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "Simple Void demonstration ship start",
+    "min_format": [
+      101,
+      1
+    ],
+    "max_format": [
+      101,
+      1
+    ]
+  }
+}

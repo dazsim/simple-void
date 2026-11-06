@@ -1,0 +1,68 @@
+plugins {
+    id 'multiloader-common'
+    id 'net.neoforged.moddev'
+}
+
+neoForge {
+    neoFormVersion = neo_form_version
+    def at = file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (at.exists()) {
+        accessTransformers.from(at.absolutePath)
+    }
+}
+
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    commonJava sourceSets.main.java.sourceDirectories.singleFile
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+}
+
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    configurations.named(variant) {
+        attributes {
+            attribute(loaderAttribute, 'common')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant->
+        configurations.named(variant) {
+            attributes {
+                attribute(loaderAttribute, 'common')
+            }
+        }
+    }
+}
+
+repositories { maven { url = 'https://maven.fabricmc.net/' } }
+dependencies { compileOnly 'net.fabricmc:sponge-mixin:0.17.0+mixin.0.8.7' }
+
+sourceSets {
+    validation {
+        java.srcDir rootProject.file('tools/java')
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath + compileClasspath
+    }
+}
+
+tasks.register('validateResources', JavaExec) {
+    group = 'verification'
+    description = 'Validate codecs and configuration without starting Minecraft.'
+    dependsOn tasks.named('validationClasses')
+    classpath = sourceSets.validation.runtimeClasspath
+    mainClass = 'com.workshopcraft.simplevoid.validation.ResourceChecks'
+    args rootProject.projectDir.absolutePath
+    workingDir layout.buildDirectory.dir('validation')
+    doFirst { workingDir.mkdirs() }
+}
