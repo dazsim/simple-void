@@ -1,142 +1,232 @@
 # Simple Void
 
-Minecraft 26.1 to 26.1.2, Java 25, NeoForge and Fabric. Mod id: `simplevoid`.
+M1 for Minecraft 26.1 to 26.1.2, Java 25, NeoForge. Mod id: `simplevoid`.
 
-M1 provides a void Overworld preset and one starting structure per world. It does
-not add blocks, items, recipes, portals, quests, hazards or a space backdrop.
-Hull and boundary blocks belong to the Simple Machines ship blocks add-on.
+A void world preset with reusable, data-driven world setups. A setup places
+several named structures at world creation or later through a command or API.
+One placement is the spawn structure. No custom blocks, items, recipes, portals,
+quests, resource progression, hazards or space backdrop are added. Hull and
+boundary blocks belong to the Simple Machines ship blocks add-on.
 
 ## Create a world
 
 Choose **Simple Void** as the world type. On a dedicated server, set
-`level-type=simplevoid:void` in `server.properties` before creating a new world.
-Fabric requires Fabric Loader and Fabric API.
+`level-type=simplevoid:void` before creating a new world.
 
 The Overworld has no terrain, generated structures, lakes or decoration. Its
-marker biome keeps ordinary plains weather, colours and mob spawning. The Nether
-and End are vanilla. Existing worlds and other world types are not changed.
+marker biome keeps plains weather, colours and mob spawning. The Nether and End
+are vanilla. Existing worlds and other world types are not changed automatically.
 
-The default start is a small grass and dirt island with an oak tree, at origin
-`0 64 0`. Players start at `4.5 67 2.5`. There is no chest or resource progression
-added. The optional `simplevoid:ship` is a small, empty vanilla-block demonstration
-cabin, not Homebound's final ship. Its spawn is inside, beneath the roof.
+The default `simplevoid:skyblock` setup creates:
 
-## Choose a start
+- `start`: a vanilla grass/dirt island with an oak tree at `0 64 0`. Spawn is
+  `4.5 67 2.5`. No starter chest or supplies are added.
+- `distant_example`: a small vanilla stone-brick pad, 256 blocks east of spawn,
+  with a 90-degree rotation. It is an example, not a resource-island progression.
+- `later_example`: another example pad, disabled at creation and gated by a
+  scoreboard condition for demonstrating later placement.
+
+`simplevoid:ship` is a separate setup with a small empty vanilla-block cabin.
+It demonstrates an interior spawn beneath a roof, not Homebound's final ship.
+All bundled templates use vanilla blocks only.
+
+## Select or define a setup
 
 The highest-priority data pack resource
-`data/simplevoid/simplevoid/start.json` selects the start definition:
+`data/simplevoid/simplevoid/world_setup.json` selects the setup:
 
 ```json
-{"start": "simplevoid:island"}
+{"setup": "simplevoid:skyblock"}
 ```
 
-Use `simplevoid:ship` for the bundled demonstration ship. The ready-to-use pack in
-`examples/ship-start` switches to it. Enable that pack before world creation.
+The `setup` key in `config/simplevoid.properties` overrides that selector when
+non-blank. For example, `setup=simplevoid:ship`. Blank uses the data pack selector.
+The config file is generated on first Simple Void world creation. The optional
+pack in `examples/ship-start` selects the demonstration ship instead.
 
-Alternatively, set `start=simplevoid:ship` in `config/simplevoid.properties`.
-The `start` key selects a **definition id**, not an NBT structure id. A non-blank
-config value overrides the data pack selector. Blank, the generated default,
-uses the selector. The file is created on the first Simple Void world creation.
-Selection is read only when creating a world, not on `/reload` or reconnect.
-
-## Supply a Homebound ship
-
-For a definition id `homebound:ship`, provide
-`data/homebound/simplevoid/start/ship.json` in a data pack:
+A setup id such as `homebound:colony` resolves to
+`data/homebound/simplevoid/world_setup/colony.json`. A local config file at
+`config/simplevoid/world_setup/homebound/colony.json` can define the same setup
+instead, with priority over its data pack resource. Both use the same format:
 
 ```json
 {
-  "structure": "homebound:colony_ship",
-  "origin": [0, 64, 0],
-  "spawn_offset": [4, 1, 5],
-  "yaw": 180
+  "spawn": {
+    "placement": "ship",
+    "offset": [4, 1, 5],
+    "yaw": 180
+  },
+  "placements": [
+    {
+      "name": "ship",
+      "structure": "homebound:colony_ship",
+      "position": {"fixed": [0, 64, 0]},
+      "rotation": "none",
+      "at_creation": true
+    },
+    {
+      "name": "distant_island",
+      "structure": "simplevoid:outpost",
+      "position": {"spawn_offset": [256, -1, 0]},
+      "rotation": "clockwise_90",
+      "at_creation": true
+    },
+    {
+      "name": "later_island",
+      "structure": "simplevoid:outpost",
+      "position": {"fixed": [-256, 64, 0]},
+      "rotation": "none",
+      "at_creation": false,
+      "condition": {
+        "mod_loaded": "homebound",
+        "score": {"objective": "repairs", "holder": "#world", "min": 1}
+      }
+    }
+  ]
 }
 ```
 
-The matching structure file is
-`data/homebound/structure/colony_ship.nbt`, a normal compressed structure template
-saved with a structure block. The structure can come from another mod or any
-enabled data pack. Templates may contain modded blocks when their mod is loaded.
-Use a relative template offset for the player's feet, not world coordinates.
-The example offset must be adjusted to the real ship's safe interior position.
+The ship template in that example is
+`data/homebound/structure/colony_ship.nbt`, a normal compressed structure-block
+NBT template supplied by the pack or another mod. Adjust its spawn offset to the
+real ship's safe interior. Modded blocks can be used when their mods are installed.
 
-Select it with `{"start":"homebound:ship"}` in the selector, or
-`start=homebound:ship` in the config. `origin` defaults to `[0,64,0]`; `yaw`
-defaults to `0` and accepts `-180` through `180`. `structure` and `spawn_offset`
-are required. Template placement has no rotation or mirroring.
+### Fields
 
-The template must have a solid floor at the spawn and two clear, dry blocks for
-the player, entirely inside its saved bounds. Include the spawn air/headroom in
-the structure-block selection. Limits are 256 blocks on each axis and 1,048,576
-blocks in the bounding volume, inside the world's build height and border.
-Invalid configuration, missing structures or unsafe spawns abort world creation
-with an explanation rather than dropping players into the void. Fix the data and
-create a fresh test world after a failed placement.
+- `spawn.placement`: names exactly one placement as the spawn structure.
+- `spawn.offset`: player-feet offset inside its unrotated template. The offset
+  rotates with the template. Include air and headroom in the saved template.
+- `spawn.yaw`: global facing angle, `-180` to `180`, default `0`.
+- `placements`: 1 to 128 entries with unique, stable lowercase `name` values.
+  Names may contain letters, digits, `_` and `-`, but not slashes or dots.
+- `structure`: any namespaced structure-template id.
+- `position`: exactly one of `fixed` or `spawn_offset`, each an integer `[x,y,z]`.
+  These specify the placement origin. Rotation pivots around template-local
+  `[0,0,0]`, so rotated bounds can extend into negative X or Z from the origin.
+- `rotation`: `none`, `clockwise_90`, `180`, or `counterclockwise_90`.
+  Default is `none`.
+- `at_creation`: default `true`. False entries are available only to later
+  command/API calls. They do not get a placement marker until actually placed.
+- `condition`: optional object, all supplied checks must pass. `enabled` defaults
+  to true; false disables the placement. `mod_loaded` checks one mod id. `score`
+  checks a literal scoreboard `holder` in an `objective`, with optional inclusive
+  `min` and `max`. Missing objectives or scores fail. No selectors are evaluated.
+  Omitted conditions always pass. Failed conditions remain unplaced and can be
+  retried later; they are not polled automatically.
 
-## Placement and respawning
+The spawn placement must use `fixed` coordinates and `at_creation=true`. Its
+condition must pass at creation. Other placements may be relative to the
+configured spawn at creation or the current world spawn on later calls.
 
-The structure is placed before vanilla's initial spawn search, once at world
-creation. The chosen definition is saved as namespaced world saved data. Normal
-world loads, joins, deaths, data reloads and config changes never place it again.
-Player edits to the island or ship are preserved. This is not a per-player island
-system.
+Templates must fit 256 blocks per axis and 1,048,576 blocks in their bounding
+volume, within build height and the world border. Spawn needs a solid floor and
+two clear, dry blocks, inside the saved template. Missing templates, invalid data,
+unsafe spawns or failed spawn conditions abort world creation with an explanation.
+Fix the data and create a fresh test world after a failed placement. Placements
+are preflighted for missing templates and bounds, but are not transactional if a
+block/entity handler fails partway through a template.
+
+## Later placement
+
+Operator level 2 or equivalent permission is required:
+
+```text
+/void place simplevoid:skyblock
+/void place simplevoid:skyblock distant_example
+/void place distant_example
+```
+
+A namespaced argument selects a whole setup; an optional second argument selects
+one placement in it. A bare placement name uses the setup saved when the world
+was created, falling back to the configured selection on other worlds. Commands
+run in the command source's dimension and do not change world spawn. They can
+overwrite existing blocks, so use them carefully in built-up areas.
+
+For the deferred default example:
+
+```text
+/scoreboard objectives add void_example dummy
+/scoreboard players set #world void_example 1
+/void place later_example
+```
+
+Public API, called on the server thread:
+
+```java
+VoidPlacements.placeSetup(level, Identifier.parse("homebound:colony"));
+VoidPlacements.placePlacement(level, Identifier.parse("homebound:colony"), "later_island");
+```
+
+Import `com.workshopcraft.simplevoid.api.VoidPlacements`. Both methods return a
+`Result` with `placed`, `alreadyPlaced` and `conditionFailed` name lists, and throw
+on invalid data or failed placement. They obey conditions and do not reset spawn.
+They work in any server dimension, not only the automatic void Overworld.
+
+Each successful placement is recorded independently in namespaced, per-dimension
+saved data as `<setup id>/<placement name>`, with its structure, position and
+rotation. Commands, API calls, reloads and normal world restarts skip that key.
+Player edits are preserved. Keep names stable: renaming a setup or placement
+creates a new identity and can place another copy. There is no force/replacement
+command. As with other world data, durability depends on saving the world.
+
+## Spawn behaviour
+
+Automatic placement happens before vanilla's initial spawn search, once at world
+creation. The selected setup and spawn are saved. Changing config or data later
+does not automatically add or replace structures; use the command/API explicitly.
+Later calls load the current setup definition, but already-placed keys still skip.
 
 World spawn is set to the configured point and `minecraft:respawn_radius` is set
-to zero on creation. A narrow spawn hook keeps new players and fallback respawns
-at that point, including under ship roofs, instead of the surface heightmap.
-Beds and respawn anchors keep their normal behaviour. Changing world spawn or
-setting a nonzero respawn radius restores vanilla spawn searching. Destroying or
-blocking the saved spawn also falls back to vanilla; the mod does not repair the
-structure or manufacture a rescue platform. Bonus-chest generation is skipped in
-this preset: any supplies belong in the pack's template.
+to zero on creation. A narrow spawn hook keeps first joins and fallback respawns
+at that point, including under ship roofs. Beds and respawn anchors work normally.
+Changing world spawn or setting a nonzero radius restores vanilla spawn searching.
+Destroying or blocking the saved spawn also falls back to vanilla; the mod does
+not repair structures or create rescue platforms. Bonus chests are skipped: pack
+supplies belong in templates. This is not a per-player island system.
 
 ## Layout and builds
 
-- `common`: preset, biome, start data, templates, configuration, placement and
-  spawn mixins shared by both loaders.
-- `neoforge` and `fabric`: small loader entrypoints and metadata.
-- `build-logic`, `gradle`: build conventions and wrapper copied from More Lighting.
-- `tools`: deterministic template generator, resource checks and a headless Java
-  codec/configuration verifier.
-- `examples/ship-start`: optional start-selection data pack.
+This is a real Stonecutter 0.9.8 branched build, active version `26.1.2`, on Git
+branch `master`. There are no other Minecraft versions configured.
 
-Versions and dependencies are centralised in `gradle.properties`; source and
-resources are separate from the loader builds so a Stonecutter controller can add
-version projects later. Only 26.1.2 is configured now. No ports or duplicate
-version trees are included. The committed version is `0.1.0`.
+- `stonecutter.gradle`, `settings.gradle`: controller and version/branch graph.
+- `common/src`: shared preset, biome, setup data, templates, placement API,
+  configuration, commands, saved data and spawn mixins.
+- `common/versions/26.1.2`: common build node.
+- `neoforge/src`, `neoforge/versions/26.1.2`: loader entrypoint and release node.
+- `fabric`: retained source/metadata scaffold, not an enabled Stonecutter node
+  and not built or shipped in this alpha.
+- `build-logic`, `gradle`: sibling build conventions and wrapper, adapted for
+  Stonecutter. Dependency versions remain in `gradle.properties` for this one node.
+- `tools`: deterministic vanilla-template generation and headless validation.
+- `examples/ship-start`: optional data pack selector.
 
 ```sh
 export JAVA_HOME=/home/box/.gradle/jdks/eclipse_adoptium-25-amd64-linux.2
 export PATH=$JAVA_HOME/bin:$PATH
-# Iterate only NeoForge
-./gradlew -q build -Ploaders=neoforge -x test -x javadoc
+./gradlew -q build -x test -x javadoc
 python3 tools/verify_resources.py
-./gradlew -q :common:validateResources -Ploaders=neoforge -x test -x javadoc
-# Both loaders for the alpha
+./gradlew -q :common:26.1.2:validateResources -x test -x javadoc
 ./gradlew -q build -x test -x javadoc -Pversion=0.1.0-alpha.1
 ```
 
-Loader jars are written under each loader's `build/libs`. The `loaders` property
-also avoids configuring Fabric while iterating. `tools/generate_structures.py`
-recreates the bundled vanilla templates without an art generator or game launch.
-The Java verifier loads registries, codecs, templates and saved data only; it does
-not construct a world or start a Minecraft server/client.
+The committed version is `0.1.0`. The NeoForge jar is under
+`neoforge/versions/26.1.2/build/libs`. No Fabric build is included.
+`tools/generate_structures.py` recreates the vanilla templates. Headless checks
+load registries, codecs, templates, conditions and saved data only; they do not
+construct worlds or start a Minecraft server/client.
 
-## Validation status
+## Validation still needed
 
-Compile and headless checks are not an in-game test. Shared-server testing and
-screenshots require ModDev's lock and have not been run for this alpha.
+Compile and headless checks are not an in-game test. No shared-server tests or
+screenshots have been run. ModDev's lock is required before either game process.
 
-When that slot is available, test on both loaders:
-
-1. Create Simple Void with the default island; verify the island and exact spawn.
-2. Travel away and verify empty terrain. Check a normal world remains normal.
-3. Edit blocks, stop, reload and reconnect; verify there is no second placement.
-4. Join as another player, die without a bed, then test a bed respawn.
-5. Select the ship through config and through the example pack in fresh worlds;
-   verify spawning inside rather than on its roof. Check config precedence.
-6. Try a custom namespaced ship template, invalid id and obstructed spawn.
-7. Reload data and change selection after creation; verify the start is unchanged.
+When a slot is available: verify default spawn and distant pad; travel into empty
+terrain; test a normal world; edit blocks and restart to check persistence; join
+as a second player and test death/bed respawns; test the ship's interior spawn;
+place a named entry and a whole setup twice; unlock the deferred scoreboard
+condition; reload data and confirm no automatic placement; try fixed/relative
+rotations, custom templates and invalid/unsafe setups.
 
 Homebound's production ship, named areas, repairs, hazards and animated sky are
 later work. Simple Books and skyblock resource progression are untouched.

@@ -82,7 +82,13 @@ def ship():
     save("ship", (9, 6, 13), blocks)
 
 
+def outpost():
+    blocks = {(x, 0, z): ("stone_bricks", ()) for x in range(5) for z in range(5)}
+    save("outpost", (5, 3, 5), blocks)
+
+
 if __name__ == "__main__":
     island()
     ship()
+    outpost()
     print("Generated vanilla island and demonstration ship")

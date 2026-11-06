@@ -5,7 +5,7 @@ plugins {
 
 neoForge {
     version = neoforge_version
-    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
+    def at = project(':common:26.1.2').file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
     }
@@ -55,3 +55,5 @@ sourceSets.configureEach {
         }
     }
 }
+
+tasks.named('createMinecraftArtifacts') { dependsOn 'stonecutterGenerate' }

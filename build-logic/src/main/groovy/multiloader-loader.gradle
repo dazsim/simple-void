@@ -5,21 +5,23 @@ plugins {
 configurations {
     commonJava {
         canBeResolved = true
+        canBeConsumed = false
     }
     commonResources {
         canBeResolved = true
+        canBeConsumed = false
     }
 }
 
 dependencies {
-    compileOnly(project(':common')) {
+    compileOnly(project(":common:${project.name}")) {
         def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
         attributes {
             attribute(loaderAttribute, 'common')
         }
     }
-    commonJava(project(path: ':common', configuration: 'commonJava'))
-    commonResources(project(path: ':common', configuration: 'commonResources'))
+    commonJava(project(path: ":common:${project.name}", configuration: 'commonJava'))
+    commonResources(project(path: ":common:${project.name}", configuration: 'commonResources'))
 }
 
 tasks.named('compileJava', JavaCompile) {

@@ -53,14 +53,12 @@ def verify():
     assert set(preset["dimensions"]) == {"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"}
     biome = json.loads((RESOURCES / "data/simplevoid/worldgen/biome/void.json").read_text())
     assert biome["features"] == biome["carvers"] == []
-    selector = json.loads((RESOURCES / "data/simplevoid/simplevoid/start.json").read_text())
-    assert selector == {"start": "simplevoid:island"}
-    for name in ("island", "ship"):
-        definition = json.loads((RESOURCES / f"data/simplevoid/simplevoid/start/{name}.json").read_text())
-        assert definition["structure"] == f"simplevoid:{name}"
+    selector = json.loads((RESOURCES / "data/simplevoid/simplevoid/world_setup.json").read_text())
+    assert selector == {"setup": "simplevoid:skyblock"}
+    templates = {}
+    for name in ("island", "ship", "outpost"):
         template = read_nbt(RESOURCES / f"data/simplevoid/structure/{name}.nbt")
-        assert template["DataVersion"] == 4790
-        assert not template["entities"]
+        assert template["DataVersion"] == 4790 and not template["entities"]
         assert all(state["Name"].startswith("minecraft:") for state in template["palette"])
         blocks = {}
         for entry in template["blocks"]:
@@ -69,12 +67,24 @@ def verify():
             assert all(0 <= pos[i] < template["size"][i] for i in range(3))
             blocks[pos] = template["palette"][entry["state"]]["Name"]
         assert len(blocks) == template["size"][0] * template["size"][1] * template["size"][2]
-        x, y, z = definition["spawn_offset"]
+        templates[name] = (template, blocks)
+        print(f"{name}: {template['size']}, vanilla palette")
+    for name in ("skyblock", "ship"):
+        setup = json.loads((RESOURCES / f"data/simplevoid/simplevoid/world_setup/{name}.json").read_text())
+        placements = {placement["name"]: placement for placement in setup["placements"]}
+        assert len(placements) == len(setup["placements"])
+        start = placements[setup["spawn"]["placement"]]
+        assert "fixed" in start["position"] and start["at_creation"]
+        template, blocks = templates[start["structure"].split(":")[1]]
+        x, y, z = setup["spawn"]["offset"]
         assert blocks[x, y - 1, z] not in ("minecraft:air", "minecraft:water", "minecraft:lava")
         assert blocks[x, y, z] == blocks[x, y + 1, z] == "minecraft:air"
         if name == "ship":
-            assert blocks[x, template["size"][1] - 1, z] != "minecraft:air", "Ship should exercise interior spawn under a roof"
-        print(f"{name}: {template['size']}, safe spawn {definition['spawn_offset']}, vanilla palette")
+            assert blocks[x, template["size"][1] - 1, z] != "minecraft:air"
+        if name == "skyblock":
+            assert placements["distant_example"]["position"]["spawn_offset"] == [256, -3, 0]
+            assert not placements["later_example"]["at_creation"]
+        print(f"{name} setup: {len(placements)} placements, safe spawn {setup['spawn']['offset']}")
     assert not list(RESOURCES.glob("assets/*/textures/**/"))
     print("Resource checks passed")
 

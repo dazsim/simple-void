@@ -3,8 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
+group = "${rootProject.group}.${project.parent.name}"
+
 base {
-    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+    archivesName = "${mod_id}-${project.parent.name}-${minecraft_version}"
 }
 
 java {

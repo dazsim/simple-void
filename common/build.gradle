@@ -23,8 +23,8 @@ configurations {
 }
 
 artifacts {
-    commonJava sourceSets.main.java.sourceDirectories.singleFile
-    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+    sourceSets.main.java.srcDirs.each { dir -> add('commonJava', dir) { builtBy 'stonecutterGenerate' } }
+    sourceSets.main.resources.srcDirs.each { dir -> add('commonResources', dir) { builtBy 'stonecutterGenerate' } }
 }
 
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
@@ -66,3 +66,5 @@ tasks.register('validateResources', JavaExec) {
     workingDir layout.buildDirectory.dir('validation')
     doFirst { workingDir.mkdirs() }
 }
+
+tasks.named('createMinecraftArtifacts') { dependsOn 'stonecutterGenerate' }

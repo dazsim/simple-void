@@ -1,0 +1,59 @@
+{
+  "spawn": {
+    "placement": "start",
+    "offset": [
+      4,
+      3,
+      2
+    ],
+    "yaw": 0
+  },
+  "placements": [
+    {
+      "name": "start",
+      "structure": "simplevoid:island",
+      "position": {
+        "fixed": [
+          0,
+          64,
+          0
+        ]
+      },
+      "rotation": "none",
+      "at_creation": true
+    },
+    {
+      "name": "distant_example",
+      "structure": "simplevoid:outpost",
+      "position": {
+        "spawn_offset": [
+          256,
+          -3,
+          0
+        ]
+      },
+      "rotation": "clockwise_90",
+      "at_creation": true
+    },
+    {
+      "name": "later_example",
+      "structure": "simplevoid:outpost",
+      "position": {
+        "spawn_offset": [
+          -256,
+          -3,
+          0
+        ]
+      },
+      "rotation": "none",
+      "at_creation": false,
+      "condition": {
+        "score": {
+          "objective": "void_example",
+          "holder": "#world",
+          "min": 1
+        }
+      }
+    }
+  ]
+}

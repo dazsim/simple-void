@@ -1,0 +1,26 @@
+{
+  "spawn": {
+    "placement": "ship",
+    "offset": [
+      4,
+      1,
+      5
+    ],
+    "yaw": 180
+  },
+  "placements": [
+    {
+      "name": "ship",
+      "structure": "simplevoid:ship",
+      "position": {
+        "fixed": [
+          0,
+          64,
+          0
+        ]
+      },
+      "rotation": "none",
+      "at_creation": true
+    }
+  ]
+}
