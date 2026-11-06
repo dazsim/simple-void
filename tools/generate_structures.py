@@ -24,7 +24,7 @@ def payload(kind, value):
     raise ValueError(kind)
 
 
-def save(name, size, blocks):
+def save(name, size, blocks, output=ROOT):
     palette = []
     states = {}
     entries = []
@@ -41,8 +41,8 @@ def save(name, size, blocks):
                 entries.append({"pos": (9, (3, [x, y, z])), "state": (3, states[state])})
     data = {"DataVersion": (3, 4790), "size": (9, (3, list(size))),
             "palette": (9, (10, palette)), "blocks": (9, (10, entries)), "entities": (9, (10, []))}
-    ROOT.mkdir(parents=True, exist_ok=True)
-    (ROOT / (name + ".nbt")).write_bytes(gzip.compress(b"\x0a\0\0" + payload(10, data), mtime=0))
+    output.mkdir(parents=True, exist_ok=True)
+    (output / (name + ".nbt")).write_bytes(gzip.compress(b"\x0a\0\0" + payload(10, data), mtime=0))
 
 
 def island():
@@ -84,11 +84,26 @@ def ship():
 
 def outpost():
     blocks = {(x, 0, z): ("stone_bricks", ()) for x in range(5) for z in range(5)}
-    save("outpost", (5, 3, 5), blocks)
+    test = Path(__file__).resolve().parent / "smoke-data/data/simplevoid_smoke/structure"
+    save("outpost", (5, 3, 5), blocks, test)
+
+
+def end_portal_island():
+    blocks = {(x, 0, z): ("end_stone", ()) for x in range(2, 7) for z in range(2, 7)}
+    for x in range(1, 8):
+        for z in range(1, 8):
+            if (x, z) not in ((1, 1), (1, 7), (7, 1), (7, 7)):
+                blocks[x, 1, z] = ("end_stone", ())
+    for value in range(3, 6):
+        for x, z, facing in ((value, 2, "south"), (value, 6, "north"),
+                             (2, value, "east"), (6, value, "west")):
+            blocks[x, 2, z] = ("end_portal_frame", (("facing", facing), ("eye", "false")))
+    save("end_portal_island", (9, 5, 9), blocks)
 
 
 if __name__ == "__main__":
     island()
     ship()
     outpost()
-    print("Generated vanilla island and demonstration ship")
+    end_portal_island()
+    print("Generated vanilla island, ship, End portal island and test-only outpost")

@@ -1,0 +1,60 @@
+{
+  "spawn": {
+    "placement": "start",
+    "offset": [
+      4,
+      3,
+      2
+    ],
+    "yaw": 0
+  },
+  "placements": [
+    {
+      "name": "start",
+      "structure": "simplevoid:island",
+      "position": {
+        "fixed": [
+          0,
+          64,
+          0
+        ]
+      },
+      "rotation": "none",
+      "at_creation": true,
+      "areas": [
+        {
+          "name": "island",
+          "bounds": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              8,
+              8,
+              8
+            ]
+          },
+          "initial_state": "damaged"
+        }
+      ]
+    },
+    {
+      "name": "end_portal",
+      "structure": "simplevoid:end_portal_island",
+      "position": {
+        "spawn_offset": [
+          1024,
+          -3,
+          0
+        ]
+      },
+      "rotation": "none",
+      "at_creation": true,
+      "condition": {
+        "enabled": true
+      }
+    }
+  ]
+}

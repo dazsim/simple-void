@@ -23,18 +23,71 @@ The Overworld has no terrain, generated structures, lakes or decoration. Its
 marker biome keeps plains weather, colours and mob spawning. The Nether and End
 are vanilla. Existing worlds and other world types are not changed automatically.
 
-The default `simplevoid:skyblock` setup creates:
-
-- `start`: a vanilla grass/dirt island with an oak tree at `0 64 0`. Spawn is
-  `4.5 67 2.5`. No starter chest or supplies are added.
-- `distant_example`: a small vanilla stone-brick pad, 256 blocks east of spawn,
-  with a 90-degree rotation. It is an example, not a resource-island progression.
-- `later_example`: another example pad, disabled at creation and gated by a
-  scoreboard condition for demonstrating later placement.
+The default `simplevoid:skyblock` setup creates only `start`: a vanilla grass/dirt
+island with an oak tree at `0 64 0`. Spawn is `4.5 67 2.5`. No starter chest,
+supplies or example platforms are added. The setup also lists an optional
+`end_portal` placement, disabled by its condition until explicitly enabled.
+Distant/deferred example pads and their outpost template are test-only resources
+in `tools/smoke-data`, not shipped in the mod.
 
 `simplevoid:ship` is a separate setup with a small empty vanilla-block cabin.
 It demonstrates an interior spawn beneath a roof, not Homebound's final ship.
 All bundled templates use vanilla blocks only.
+
+## Optional End portal island
+
+`simplevoid:end_portal_island` is a normal vanilla structure template: a small
+end-stone island, 12 inward-facing End portal frames, zero eyes and no active
+portal blocks. Players activate it normally by inserting all 12 eyes. There is
+no custom eye-filling code or eye-count config. Packs wanting pre-filled eyes
+must supply their own structure variant and change the placement's `structure` id.
+
+For a **new world**, set this exact key/value in `config/simplevoid.properties`:
+
+```properties
+setup=simplevoid:skyblock_end_portal
+```
+
+This bundled opt-in setup adds the portal at creation. The default remains
+`setup=` with the data-pack selector `simplevoid:skyblock`, whose portal is off.
+Alternatively, leave the properties config blank and use the data-pack selector
+`data/simplevoid/simplevoid/world_setup.json`:
+
+```json
+{"setup": "simplevoid:skyblock_end_portal"}
+```
+
+To enable it without changing the setup id, copy the complete shipped
+`data/simplevoid/simplevoid/world_setup/skyblock.json` into a data pack at the same
+path, or into `config/simplevoid/world_setup/simplevoid/skyblock.json`. Set
+`placements[name=end_portal].condition.enabled` to `true` (the shipped default
+is `false`). Keep its other placement fields and the `start` placement:
+
+```json
+{
+  "name": "end_portal",
+  "structure": "simplevoid:end_portal_island",
+  "position": {"spawn_offset": [1024, -3, 0]},
+  "rotation": "none",
+  "at_creation": true,
+  "condition": {"enabled": true}
+}
+```
+
+Position is the template origin: the default is 1024 blocks east of the spawn
+block, at `1028 64 2` with the default spawn. Replace `position` with, for example,
+`{"fixed": [1000, 64, 0]}` for absolute coordinates. For the properties-selected
+setup, override `skyblock_end_portal.json` instead of `skyblock.json` in the same
+config/data directories. Full local JSON overrides win over data packs.
+
+For an existing default world, enable `end_portal` in its **original**
+`simplevoid:skyblock` definition, then run `/void place end_portal`. The command
+obeys conditions, so it will not bypass `enabled:false`. Set `at_creation:false`
+with `enabled:true` for command-only placement. Successful placements use the
+same saved duplicate marker as other structures. Do not switch an existing
+world to the opt-in setup and place the whole setup: a different setup id has
+different markers and could place a second start island. Already-placed example
+pads from older jars are not removed from existing worlds.
 
 ## Select or define a setup
 
@@ -72,14 +125,14 @@ instead, with priority over its data pack resource. Both use the same format:
     },
     {
       "name": "distant_island",
-      "structure": "simplevoid:outpost",
+      "structure": "homebound:resource_island",
       "position": {"spawn_offset": [256, -1, 0]},
       "rotation": "clockwise_90",
       "at_creation": true
     },
     {
       "name": "later_island",
-      "structure": "simplevoid:outpost",
+      "structure": "homebound:resource_island",
       "position": {"fixed": [-256, 64, 0]},
       "rotation": "none",
       "at_creation": false,
@@ -95,7 +148,10 @@ instead, with priority over its data pack resource. Both use the same format:
 The ship template in that example is
 `data/homebound/structure/colony_ship.nbt`, a normal compressed structure-block
 NBT template supplied by the pack or another mod. Adjust its spawn offset to the
-real ship's safe interior. Modded blocks can be used when their mods are installed.
+real ship's safe interior. The example's `homebound:resource_island` template must
+also be supplied by the pack at `data/homebound/structure/resource_island.nbt`.
+These distant/deferred placements are examples, not default world content.
+Modded blocks can be used when their mods are installed.
 
 ### Fields
 
@@ -138,8 +194,8 @@ Operator level 2 or equivalent permission is required:
 
 ```text
 /void place simplevoid:skyblock
-/void place simplevoid:skyblock distant_example
-/void place distant_example
+/void place simplevoid:skyblock end_portal
+/void place end_portal
 ```
 
 A namespaced argument selects a whole setup; an optional second argument selects
@@ -148,13 +204,17 @@ was created, falling back to the configured selection on other worlds. Commands
 run in the command source's dimension and do not change world spawn. They can
 overwrite existing blocks, so use them carefully in built-up areas.
 
-For the deferred default example:
+For the deferred Homebound data example above:
 
 ```text
-/scoreboard objectives add void_example dummy
-/scoreboard players set #world void_example 1
-/void place later_example
+/scoreboard objectives add repairs dummy
+/scoreboard players set #world repairs 1
+/void place homebound:colony later_island
 ```
+
+That example also requires the `homebound` mod because of its `mod_loaded`
+condition. The test-only smoke pack retains `distant_example` and `later_example`
+with a separate `void_example` scoreboard condition.
 
 Public API, called on the server thread:
 
@@ -246,9 +306,10 @@ All require operator level 2 or equivalent. They run in the source dimension:
 Unknown/ambiguous names or invalid states fail without mutation. Setting the
 current state succeeds without firing another event or rerunning commands.
 
-The bundled island, distant pad and deferred pad define `island`, `distant_pad`
-and `deferred_pad`; the demonstration ship defines `cabin`. All start damaged,
-with no hooks. These names are examples and do not add gameplay restrictions.
+The bundled start island defines `island`; the demonstration ship defines `cabin`.
+Both start damaged with no hooks. The optional portal defines no areas. The
+smoke-only distant/deferred pads define `distant_pad` and `deferred_pad`. These
+names are examples and do not add gameplay restrictions.
 
 ### Hooks and events
 
@@ -412,8 +473,8 @@ folders, takes read-only X11 client captures, and traps exit/failure to stop onl
 its own server/client. ModDev's shared test lock is required before every run.
 The lock file is read-only for this script.
 
-Version 1.0.0 passed 48 in-game smoke checks on 6 Nov 2026, including all 17 M1
-checks, area list/get/set, rotated area bounds, common/NeoForge change events,
+Before the optional portal/template-only update, version 1.0.0 passed 48 in-game
+smoke checks on 6 Nov 2026, including all 17 M1 checks, area list/get/set, rotated area bounds, common/NeoForge change events,
 visible opt-in hooks, same-state no-ops, a full server/client restart with state
 and hook counts preserved, non-operator command refusal, and a non-operator Simple
 Books command reward. The saved area file was checked after shutdown. Exactly one
@@ -427,7 +488,9 @@ covers the server claim path, not a synthetic mouse click.
 
 `tools/create-smoke-pack.py` creates only test data: an island repair hook changes
 a vanilla red-concrete marker to emerald and increments a scoreboard counter;
-a quest reward runs `void area set island repaired`. Shipped defaults are not
+a quest reward runs `void area set island repaired`. The generated pack also
+loads `tools/smoke-data`, adding the distant/deferred placements and their
+`simplevoid_smoke:outpost` template only for testing. Shipped defaults are not
 changed. `tools/smoke-probe.gradle` builds the separate probe from
 `tools/smoke-probe`; it is not included in the release jar. Set
 `SIMPLEVOID_BOOKS_JAR` to the distributed Books jar when building the probe:
@@ -443,11 +506,18 @@ The fixture pack must load after `mod_data` before the initial area snapshots ar
 created. Full evidence and screenshots are under
 `/workspace/mods/simplevoid-dist/1.0.0/`.
 
-All 221 headless checks also passed for 1.0.0: 63 existing resource checks, 155
-area checks, and 3 checks of the actual NeoForge event-bus bridge. Further coverage
+Before the optional portal update, all 221 headless checks also passed for 1.0.0:
+63 existing resource checks, 155 area checks, and 3 checks of the actual NeoForge event-bus bridge. Further coverage
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
 M3 area hazards and M4 animated sky are planned for 1.1.0. Simple Books and
 skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
+
+The default-platform cleanup and optional zero-eye portal pass 266 headless checks
+(263 common, including 26 portal checks, plus 3 NeoForge event-bridge checks) and
+the Python resource checks. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
+rotations, vanilla portal-pattern matching after eyes are inserted, and saved
+portal duplicate markers. No server/client was started for this resource update;
+the recorded in-game screenshots and results predate it.

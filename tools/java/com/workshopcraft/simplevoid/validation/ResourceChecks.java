@@ -94,16 +94,20 @@ public final class ResourceChecks {
         check(flat.settings().getLayers().isEmpty(), "No terrain layers");
         check(flat.settings().structureOverrides().orElseThrow().size() == 0, "No generated structures");
         check(flat.settings().getBiome().is(SimpleVoid.id("void")), "Void marker biome");
+        WorldSetup defaults;
         WorldSetup skyblock;
+        Path smoke = Path.of(args[0]).resolve("tools/smoke-data");
         try (MultiPackResourceManager manager = manager(resources)) {
             check(StartConfig.selected(manager).equals(SimpleVoid.id("skyblock")), "Default setup");
-            skyblock = StartConfig.load(manager, StartConfig.selected(manager));
-            check(skyblock.placements().size() == 3, "Multiple placements including deferred example");
-            check(skyblock.spawnPlacement().structure().equals(SimpleVoid.id("island")), "Island is spawn structure");
-            check(skyblock.spawnPosition().equals(new BlockPos(4, 67, 2)), "Absolute spawn position");
-            check(skyblock.placement("distant_example").position().resolve(skyblock.spawnPosition()).equals(new BlockPos(260, 64, 2)), "Spawn-relative placement");
-            check(skyblock.placement("distant_example").rotation() == Rotation.CLOCKWISE_90, "Rotation decoded");
-            check(!skyblock.placement("later_example").atCreation(), "Deferred placement decoded");
+            defaults = StartConfig.load(manager, StartConfig.selected(manager));
+            check(defaults.placements().stream().map(StructurePlacement::name).toList().equals(List.of("start", "end_portal")), "No example pads shipped in default setup");
+            check(defaults.spawnPlacement().structure().equals(SimpleVoid.id("island")), "Island is spawn structure");
+            check(defaults.spawnPosition().equals(new BlockPos(4, 67, 2)), "Absolute spawn position");
+            check(defaults.placements().stream().filter(p -> p.atCreation() && p.condition().test(id -> true, new Scoreboard())).count() == 1, "Only start island eligible by default");
+            check(defaults.placement("end_portal").position().resolve(defaults.spawnPosition()).equals(new BlockPos(1028, 64, 2)), "Optional portal spawn-relative position");
+            Files.writeString(SimpleVoid.configFile(), "setup=simplevoid:skyblock_end_portal\n");
+            var withPortal = StartConfig.load(manager, StartConfig.selected(manager));
+            check(withPortal.placements().size() == 2 && withPortal.placement("end_portal").condition().test(id -> true, new Scoreboard()), "Properties selects enabled portal setup");
             check(Files.readString(SimpleVoid.configFile()).contains("setup="), "Config generated");
             Files.writeString(SimpleVoid.configFile(), "setup=simplevoid:ship\n");
             check(StartConfig.selected(manager).equals(SimpleVoid.id("ship")), "Config selects ship");
@@ -113,6 +117,17 @@ public final class ResourceChecks {
             Files.writeString(SimpleVoid.configFile(), "setup=Invalid Identifier!\n");
             expectFailure(() -> StartConfig.selected(manager), "Invalid identifier rejected");
             Files.writeString(SimpleVoid.configFile(), "setup=\n");
+        }
+        try (MultiPackResourceManager manager = manager(resources, smoke)) {
+            skyblock = StartConfig.load(manager, SimpleVoid.id("skyblock"));
+            check(skyblock.placements().size() == 3, "Test-only distant and deferred placements");
+            check(skyblock.placement("distant_example").structure().toString().equals("simplevoid_smoke:outpost"), "Example template is test-only");
+            check(skyblock.placement("distant_example").position().resolve(skyblock.spawnPosition()).equals(new BlockPos(260, 64, 2)), "Spawn-relative placement");
+            check(skyblock.placement("distant_example").rotation() == Rotation.CLOCKWISE_90, "Rotation decoded");
+            check(!skyblock.placement("later_example").atCreation(), "Deferred placement decoded");
+            StructureTemplate outpost = new StructureTemplate();
+            outpost.load(BuiltInRegistries.BLOCK, NbtIo.readCompressed(smoke.resolve("data/simplevoid_smoke/structure/outpost.nbt"), NbtAccounter.unlimitedHeap()));
+            check(outpost.getSize().equals(new BlockPos(5, 3, 5)), "Test-only outpost vanilla template loads");
         }
         Path overlay = temporary.resolve("pack");
         Path selector = overlay.resolve("data/simplevoid/simplevoid/world_setup.json");
@@ -127,6 +142,23 @@ public final class ResourceChecks {
             Files.copy(resources.resolve("data/simplevoid/simplevoid/world_setup/ship.json"), override);
             check(StartConfig.load(manager, SimpleVoid.id("skyblock")).spawnPlacement().structure().equals(SimpleVoid.id("ship")), "Config can define full setup");
             Files.delete(override);
+            var portalJson = json(resources.resolve("data/simplevoid/simplevoid/world_setup/skyblock.json")).getAsJsonObject();
+            var portalEntry = portalJson.getAsJsonArray("placements").get(1).getAsJsonObject();
+            portalEntry.getAsJsonObject("condition").addProperty("enabled", true);
+            portalEntry.add("position", JsonParser.parseString("{\"fixed\":[512,80,-512]}"));
+            Files.writeString(override, portalJson.toString());
+            var localPortal = StartConfig.load(manager, SimpleVoid.id("skyblock")).placement("end_portal");
+            check(localPortal.condition().test(id -> true, new Scoreboard()), "Local JSON enables portal");
+            check(localPortal.position().resolve(defaults.spawnPosition()).equals(new BlockPos(512, 80, -512)), "Local JSON positions portal at fixed coordinates");
+            Files.delete(override);
+            Path dataOverride = overlay.resolve("data/simplevoid/simplevoid/world_setup/skyblock.json");
+            Files.createDirectories(dataOverride.getParent());
+            portalEntry.add("position", JsonParser.parseString("{\"spawn_offset\":[-1024,-3,128]}"));
+            Files.writeString(dataOverride, portalJson.toString());
+            var dataPortal = StartConfig.load(manager, SimpleVoid.id("skyblock")).placement("end_portal");
+            check(dataPortal.condition().test(id -> true, new Scoreboard()), "Data pack enables portal");
+            check(dataPortal.position().resolve(defaults.spawnPosition()).equals(new BlockPos(-1020, 64, 130)), "Data pack positions portal relative to spawn");
+            Files.delete(dataOverride);
         }
         Path custom = overlay.resolve("data/homebound/simplevoid/world_setup/ship.json");
         Files.createDirectories(custom.getParent());
@@ -176,7 +208,7 @@ public final class ResourceChecks {
         check(condition.test(id -> true, scoreboard), "Score maximum inclusive");
         check(!PlacementCondition.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"enabled\":false}")).getOrThrow().test(id -> true, scoreboard), "Disabled condition skips");
         check(PlacementCondition.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"score\":{\"objective\":\"test\",\"holder\":\"x\",\"min\":5,\"max\":1}}")).error().isPresent(), "Invalid score range rejected");
-        for (String name : List.of("skyblock", "ship")) {
+        for (String name : List.of("skyblock", "skyblock_end_portal", "ship")) {
             WorldSetup setup = WorldSetup.CODEC.parse(JsonOps.INSTANCE,
                     json(resources.resolve("data/simplevoid/simplevoid/world_setup/" + name + ".json"))).getOrThrow();
             for (var placement : setup.placements()) {
@@ -191,6 +223,7 @@ public final class ResourceChecks {
                 }
             }
         }
+        checks += PortalChecks.run(resources);
         StartState state = StartState.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{}")).getOrThrow();
         check(state.spawn().isEmpty() && state.placements().isEmpty(), "Fresh placement state");
         var setupId = SimpleVoid.id("skyblock");
@@ -201,6 +234,12 @@ public final class ResourceChecks {
         check(state.isPlaced(key), "Placement marked");
         check(!state.isPlaced(skyblock.placement("distant_example").key(setupId)), "Other placement not marked");
         expectFailure(() -> state.complete(key, snapshot), "Duplicate marker rejected");
+        var portalKey = defaults.placement("end_portal").key(setupId);
+        var portalSnapshot = new StartState.Placed(SimpleVoid.id("end_portal_island"), new BlockPos(1028, 64, 2), Rotation.NONE);
+        check(!state.isPlaced(portalKey), "Disabled portal has no marker");
+        state.complete(portalKey, portalSnapshot);
+        check(state.isPlaced(portalKey), "Optional portal marker recorded independently");
+        expectFailure(() -> state.complete(portalKey, portalSnapshot), "Repeated portal marker rejected");
         JsonElement encoded = StartState.CODEC.encodeStart(JsonOps.INSTANCE, state).getOrThrow();
         StartState restored = StartState.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
         check(restored.placements().equals(state.placements()) && restored.spawn().equals(state.spawn()), "Placement state codec round trip");
@@ -212,6 +251,7 @@ public final class ResourceChecks {
         try (SavedDataStorage storage = new SavedDataStorage(savedData, DataFixers.getDataFixer(), lookup)) {
             var saved = storage.computeIfAbsent(StartState.TYPE);
             check(saved.isPlaced(key) && saved.placements().get(key).equals(snapshot), "Placement marker survives disk reload");
+            check(saved.isPlaced(portalKey) && saved.placements().get(portalKey).equals(portalSnapshot), "Portal marker survives disk reload");
             check(saved.selectedSetup().orElseThrow().equals(setupId), "Selected setup survives reload");
         }
         CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
@@ -220,7 +260,7 @@ public final class ResourceChecks {
         CommandDispatcher<CommandSourceStack> parser = new CommandDispatcher<>();
         parser.register(Commands.literal("void").then(dispatcher.getRoot().getChild("void").getChild("place")));
         for (String command : List.of("void place simplevoid:skyblock", "void place simplevoid:skyblock distant_example",
-                "void place later_example", "void place homebound:ships/colony room")) {
+                "void place later_example", "void place end_portal", "void place simplevoid:skyblock end_portal", "void place homebound:ships/colony room")) {
             var parsed = parser.parse(command, null);
             check(!parsed.getReader().canRead() && parsed.getExceptions().isEmpty(), "Command parses " + command);
         }

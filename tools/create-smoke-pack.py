@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -12,7 +13,8 @@ def write(path, value):
     target.write_text(json.dumps(value, indent=2) + "\n")
 
 write("pack.mcmeta", {"pack": {"description": "Simple Void M2 smoke fixtures only", "min_format": 84, "max_format": [101, 1]}})
-setup = json.loads((root / "common/src/main/resources/data/simplevoid/simplevoid/world_setup/skyblock.json").read_text())
+shutil.copytree(root / "tools/smoke-data", out, dirs_exist_ok=True)
+setup = json.loads((out / "data/simplevoid/simplevoid/world_setup/skyblock.json").read_text())
 setup["placements"][0]["areas"][0]["on_state_change"] = {
     "enabled": True,
     "commands": {

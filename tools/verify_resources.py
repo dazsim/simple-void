@@ -56,8 +56,10 @@ def verify():
     selector = json.loads((RESOURCES / "data/simplevoid/simplevoid/world_setup.json").read_text())
     assert selector == {"setup": "simplevoid:skyblock"}
     templates = {}
-    for name in ("island", "ship", "outpost"):
-        template = read_nbt(RESOURCES / f"data/simplevoid/structure/{name}.nbt")
+    for name in ("island", "ship", "end_portal_island", "outpost"):
+        path = (ROOT / "tools/smoke-data/data/simplevoid_smoke/structure/outpost.nbt" if name == "outpost"
+                else RESOURCES / f"data/simplevoid/structure/{name}.nbt")
+        template = read_nbt(path)
         assert template["DataVersion"] == 4790 and not template["entities"]
         assert all(state["Name"].startswith("minecraft:") for state in template["palette"])
         blocks = {}
@@ -69,7 +71,22 @@ def verify():
         assert len(blocks) == template["size"][0] * template["size"][1] * template["size"][2]
         templates[name] = (template, blocks)
         print(f"{name}: {template['size']}, vanilla palette")
-    for name in ("skyblock", "ship"):
+    assert not (RESOURCES / "data/simplevoid/structure/outpost.nbt").exists()
+    template, blocks = templates["end_portal_island"]
+    frames = {tuple(entry["pos"]): template["palette"][entry["state"]]["Properties"]
+              for entry in template["blocks"]
+              if template["palette"][entry["state"]]["Name"] == "minecraft:end_portal_frame"}
+    expected = {}
+    for value in range(3, 6):
+        for x, z, facing in ((value, 2, "south"), (value, 6, "north"),
+                             (2, value, "east"), (6, value, "west")):
+            expected[x, 2, z] = {"facing": facing, "eye": "false"}
+    assert len(frames) == 12 and frames == expected
+    assert set(blocks.values()) == {"minecraft:air", "minecraft:end_stone", "minecraft:end_portal_frame"}
+    assert all(blocks[x, y - 1, z] == "minecraft:end_stone" for x, y, z in frames)
+    assert all(blocks[x, 2, z] == blocks[x, 3, z] == "minecraft:air" for x in range(3, 6) for z in range(3, 6))
+    print("End portal island: 12 inward frames, no eyes, end-stone support, clear center")
+    for name in ("skyblock", "skyblock_end_portal", "ship"):
         setup = json.loads((RESOURCES / f"data/simplevoid/simplevoid/world_setup/{name}.json").read_text())
         placements = {placement["name"]: placement for placement in setup["placements"]}
         assert len(placements) == len(setup["placements"])
@@ -81,10 +98,23 @@ def verify():
         assert blocks[x, y, z] == blocks[x, y + 1, z] == "minecraft:air"
         if name == "ship":
             assert blocks[x, template["size"][1] - 1, z] != "minecraft:air"
-        if name == "skyblock":
-            assert placements["distant_example"]["position"]["spawn_offset"] == [256, -3, 0]
-            assert not placements["later_example"]["at_creation"]
+        if name.startswith("skyblock"):
+            assert set(placements) == {"start", "end_portal"}
+            portal = placements["end_portal"]
+            assert portal["structure"] == "simplevoid:end_portal_island"
+            assert portal["position"] == {"spawn_offset": [1024, -3, 0]}
+            assert portal["at_creation"] and portal["rotation"] == "none"
+            assert portal["condition"]["enabled"] == (name == "skyblock_end_portal")
+            eligible = [p["name"] for p in placements.values() if p["at_creation"] and p.get("condition", {}).get("enabled", True)]
+            assert eligible == (["start"] if name == "skyblock" else ["start", "end_portal"])
         print(f"{name} setup: {len(placements)} placements, safe spawn {setup['spawn']['offset']}")
+    smoke = json.loads((ROOT / "tools/smoke-data/data/simplevoid/simplevoid/world_setup/skyblock.json").read_text())
+    examples = {p["name"]: p for p in smoke["placements"]}
+    assert set(examples) == {"start", "distant_example", "later_example"}
+    assert examples["distant_example"]["position"]["spawn_offset"] == [256, -3, 0]
+    assert not examples["later_example"]["at_creation"]
+    assert all(examples[name]["structure"] == "simplevoid_smoke:outpost" for name in ("distant_example", "later_example"))
+    print("Distant and deferred examples retained only in smoke data")
     logo = RESOURCES / "simplevoid_logo.png"
     image = logo.read_bytes()
     assert image[:8] == b"\x89PNG\r\n\x1a\n" and struct.unpack(">II", image[16:24]) == (400, 400)
