@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -eo pipefail
 REPO=/workspace/mods/simple-void
-DIST=/workspace/mods/simplevoid-dist/0.1.0-alpha.1
+VERSION=1.0.0
+DIST=/workspace/mods/simplevoid-dist/$VERSION
+BOOKS=${SIMPLEVOID_BOOKS_JAR:-/workspace/mods/simplebooks-261/dist/1.2.0/simplebooks-neoforge-26.1.2-1.2.0.jar}
+PROBE=$REPO/neoforge/versions/26.1.2/build/smoke-probe/simplevoid-smoke-probe-1.0.0.jar
 SMOKE=/workspace/mods/smoke
 BASE=$SMOKE/26.1.2-neoforge
+if ! rg -q '^Holder: Simple Void' /workspace/mods/test-server-lock.txt; then echo 'Lock is not ours'; exit 1; fi
+if ss -ltn '( sport = :25671 or sport = :25672 )' | rg -q ':2567[12]'; then echo 'Shared ports are busy'; exit 1; fi
 RUN=$SMOKE/simplevoid-$(date +%Y%m%d-%H%M%S)
 mkdir -p "$RUN"
 printf '%s\n' "$RUN" > "$SMOKE/simplevoid-last-run.txt"
@@ -15,15 +20,20 @@ CR=$RUN/client
 SS=$CR/screenshots
 CLOG=$RUN/client-gradle.log
 CINIT=$SMOKE/simplevoid-client.gradle
-RUNTASK='-Pversion=0.1.0-alpha.1 :neoforge:26.1.2:runClient'
+RUNTASK='-Pversion=1.0.0 :neoforge:26.1.2:runClient'
 export SIMPLEVOID_CLIENT_DIR=$CR
 SERVER_PID= CLIENT_PID= XVFB_PID=
 FAIL=0
-mkdir -p "$SV/mods" "$CR" "$DIST/screenshots"
+mkdir -p "$SV/mods" "$CR/mods" "$DIST/screenshots"
 ln -s "$BASE/libraries" "$SV/libraries"
 cp "$BASE/run.sh" "$BASE/eula.txt" "$SV/"
 printf '%s\n' '-Xms512M' '-Xmx2G' > "$SV/user_jvm_args.txt"
-cp "$DIST/simplevoid-neoforge-26.1.2-0.1.0-alpha.1.jar" "$SV/mods/"
+cp "$DIST/simplevoid-neoforge-26.1.2-$VERSION.jar" "$SV/mods/"
+cp "$BOOKS" "$PROBE" "$SV/mods/"
+cp "$BOOKS" "$PROBE" "$CR/mods/"
+python3 "$REPO/tools/create-smoke-pack.py" "$SV/world/datapacks/simplevoid-smoke"
+sha256sum "$BOOKS" "$DIST/simplevoid-neoforge-26.1.2-$VERSION.jar" > "$RUN/artifacts.sha256"
+cp /workspace/mods/test-server-lock.txt "$RUN/lock-before.txt"
 cp "$REPO/tools/smoke-client.gradle" "$CINIT"
 
 owned_alive() {
@@ -82,10 +92,9 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if ! rg -q '^Holder: Simple Void' /workspace/mods/test-server-lock.txt; then echo 'Lock is not ours'; exit 1; fi
-if ss -ltn '( sport = :25671 or sport = :25672 )' | rg -q ':2567[12]'; then echo 'Shared ports are busy'; exit 1; fi
 
 server_up() {
+    if ss -ltn '( sport = :25671 or sport = :25672 )' | rg -q ':2567[12]'; then echo 'Cannot start: shared ports busy'; return 1; fi
     cat > "$SV/server.properties" <<'PROPERTIES'
 enable-rcon=true
 rcon.password=smoke
@@ -95,6 +104,7 @@ online-mode=false
 white-list=false
 level-type=simplevoid\:void
 level-name=world
+initial-enabled-packs=vanilla,mod_data,file/simplevoid-smoke
 spawn-protection=0
 enforce-secure-profile=false
 gamemode=creative
@@ -125,6 +135,7 @@ client_up() {
     cat > "$CR/options.txt" <<'OPTIONS'
 guiScale:2
 onboardAccessibility:false
+skipMultiplayerWarning:true
 pauseOnLostFocus:false
 tutorialStep:none
 renderDistance:12
@@ -180,6 +191,9 @@ expect() {
 }
 
 server_up
+expect smoke_pack_loaded 'datapack list enabled' 'file/simplevoid-smoke'
+expect hooks_enabled 'simplevoidsmoke status' 'hooks=true'
+[ "$FAIL" = 0 ] || { echo 'Fixture setup failed'; exit 1; }
 rc 'time set 6000'
 rc 'weather clear'
 rc 'gamerule advance_time false'
@@ -193,12 +207,13 @@ sleep 5
 rc 'data get entity Dev Pos' | tee "$RUN/spawn.txt"
 expect initial_spawn 'execute if entity @a[name=Dev,x=4.5,y=67,z=2.5,distance=..0.15]' 'Test passed'
 expect island_floor 'execute if block 4 66 2 minecraft:grass_block' 'Test passed'
-shot "$DIST/screenshots/01-start-spawn.png"
+shot "$DIST/screenshots/01-start-island.png"
 expect void_chunk_east 'fill 80 -64 80 95 319 95 minecraft:air' 'No blocks were filled'
 expect void_chunk_west 'fill -112 -64 -112 -97 319 -97 minecraft:air' 'No blocks were filled'
 expect distant_origin 'execute if block 260 64 2 minecraft:stone_bricks' 'Test passed'
 expect distant_rotated_corner 'execute if block 256 64 6 minecraft:stone_bricks' 'Test passed'
 expect deferred_absent 'execute if block -252 64 2 minecraft:air' 'Test passed'
+expect deferred_area_absent 'void area get deferred_pad' 'Unknown area: deferred_pad'
 expect unmet_condition 'void place later_example' 'placed 0, already placed 0, conditions not met 1'
 expect deferred_still_absent 'execute if block -252 64 2 minecraft:air' 'Test passed'
 expect setup_condition_and_duplicates 'void place simplevoid:skyblock' 'placed 0, already placed 2, conditions not met 1'
@@ -220,6 +235,52 @@ expect named_edit_preserved 'execute if block -252 64 2 minecraft:oak_planks' 'T
 rc 'setblock 4 66 2 minecraft:oak_planks'
 expect setup_duplicates_skipped 'void place simplevoid:skyblock' 'placed 0, already placed 3, conditions not met 0'
 expect spawn_edit_preserved 'execute if block 4 66 2 minecraft:oak_planks' 'Test passed'
+expect area_list 'void area list' '3 areas in minecraft:overworld'
+expect area_get_damaged 'void area get island' 'simplevoid:skyblock/start/island = damaged'
+expect rotated_area_bounds 'void area get distant_pad' 'bounds 256, 64, 2 to 260, 66, 6'
+rc 'scoreboard objectives add sv_hooks dummy'
+rc 'setblock 5 67 2 minecraft:red_concrete'
+look 10 72 -5 4.5 67 3.5
+shot "$DIST/screenshots/05-area-before-repair.png"
+expect area_set_repaired 'void area set island repaired' '= repaired (changed)'
+expect repair_visible 'execute if block 5 67 2 minecraft:emerald_block' 'Test passed'
+expect hook_once 'scoreboard players get #repair sv_hooks' 'has 1'
+expect events_once 'simplevoidsmoke status' 'events common=1 neoforge=1'
+look 10 72 -5 4.5 67 3.5
+shot "$DIST/screenshots/06-area-after-repair.png"
+expect area_repeat_noop 'void area set island repaired' '= repaired (unchanged)'
+expect hook_still_once 'scoreboard players get #repair sv_hooks' 'has 1'
+expect events_still_once 'simplevoidsmoke status' 'events common=1 neoforge=1'
 rc 'save-all flush'
+client_down
+server_down
+cp "$SV/out.log" "$RUN/server-before-restart.log"
+cp "$CLOG" "$RUN/client-before-restart.log"
+server_up
+expect persisted_state 'void area get island' '= repaired;'
+expect persisted_hook_count 'scoreboard players get #repair sv_hooks' 'has 1'
+expect persisted_visible 'execute if block 5 67 2 minecraft:emerald_block' 'Test passed'
+expect restart_no_events 'simplevoidsmoke status' 'events common=0 neoforge=0'
+client_up
+sleep 4
+expect nonop_refused 'simplevoidsmoke deny Dev' 'DENIED nonop=true parser=true unchanged=true'
+expect nonop_unchanged 'void area get island' '= repaired;'
+expect reset_for_quest 'void area set island damaged' '= damaged (changed)'
+expect damage_visible 'execute if block 5 67 2 minecraft:red_concrete' 'Test passed'
+expect book_pack_valid 'sbquests validate simplevoid:smoke' '0 errors'
+expect book_completed 'sbquests progress Dev' 'complete'
+expect book_open 'sbquests open Dev simplevoid:smoke 1' 'Opened simplevoid:smoke'
+shot "$DIST/screenshots/07-simplebooks-before-claim.png"
+expect book_nonop_claim 'simplevoidsmoke claim Dev' 'CLAIM ok=true nonop=true'
+expect book_repaired_area 'void area get island' '= repaired;'
+expect book_hook_visible 'execute if block 5 67 2 minecraft:emerald_block' 'Test passed'
+expect book_hook_count 'scoreboard players get #repair sv_hooks' 'has 2'
+expect book_event_counts 'simplevoidsmoke status' 'events common=2 neoforge=2'
+expect book_duplicate_claim 'simplevoidsmoke claim Dev' 'CLAIM ok=false nonop=true Already claimed'
+expect book_duplicate_hook_skipped 'scoreboard players get #repair sv_hooks' 'has 2'
+rc 'sbquests open Dev simplevoid:smoke 1'
+shot "$DIST/screenshots/08-simplebooks-quest-claimed.png"
+rc 'save-all flush'
+cmp /workspace/mods/test-server-lock.txt "$RUN/lock-before.txt"
 printf 'CHECKS failures=%s\n' "$FAIL" | tee -a "$RUN/checks.log"
 [ "$FAIL" = 0 ]

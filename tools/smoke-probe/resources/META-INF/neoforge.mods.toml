@@ -1,0 +1,19 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+[[mods]]
+modId="simplevoid_smoke"
+version="1.0.0"
+displayName="Simple Void Smoke Probe"
+[[dependencies.simplevoid_smoke]]
+modId="simplevoid"
+type="required"
+versionRange="[1.0.0,)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.simplevoid_smoke]]
+modId="simplebooks"
+type="required"
+versionRange="[1.2.0,)"
+ordering="AFTER"
+side="BOTH"

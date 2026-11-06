@@ -404,20 +404,49 @@ Real client screenshots and `SMOKE-RESULTS.txt` are in
 parser bug with namespaced ids; `IdentifierArgument` replaced the restricted word
 argument, and both the headless parser regressions and in-game retest passed.
 
-The repeatable harness is `tools/smoke-simplevoid.sh`, installed as
-`/workspace/mods/smoke/simplevoid-m1.sh`, with `tools/smoke-client.gradle` supplying
-client launch arguments. It sources `sm-b-lib.sh`, uses isolated fresh run
+The current repeatable harness is `tools/smoke-simplevoid.sh`, installed as
+`/workspace/mods/smoke/simplevoid-m2.sh`, with `tools/smoke-client.gradle` supplying
+client launch arguments. The historical M1-only script remains at
+`/workspace/mods/smoke/simplevoid-m1.sh`. It sources `sm-b-lib.sh`, uses isolated fresh run
 folders, takes read-only X11 client captures, and traps exit/failure to stop only
 its own server/client. ModDev's shared test lock is required before every run.
 The lock file is read-only for this script.
 
-Further coverage is still needed for the production ship, ship interior spawns,
-bed/anchor respawns, a normal world, full save/reload play sessions and other
-loaders. All 221 headless checks passed for 1.0.0: 63 existing resource checks, 155 area
-checks, and 3 checks of the actual NeoForge event-bus bridge. They cover
-persistence, migration, rotated bounds, hooks, events and command permissions, but no new server/client run was
-authorized for this release. In-game M2 and M1-to-1.0.0 upgrade testing remain
-required before public distribution.
+Version 1.0.0 passed 48 in-game smoke checks on 6 Nov 2026, including all 17 M1
+checks, area list/get/set, rotated area bounds, common/NeoForge change events,
+visible opt-in hooks, same-state no-ops, a full server/client restart with state
+and hook counts preserved, non-operator command refusal, and a non-operator Simple
+Books command reward. The saved area file was checked after shutdown. Exactly one
+server/client pair ran at a time, and both were stopped afterward.
+
+Simple Books 1.2.0 was installed from its existing NeoForge 26.1.2 distribution,
+read-only. The test-only probe invokes the installed Claim packet handler for the
+real non-op player, without bypassing completion, claim or reward checks. The
+actual quest screen was captured before and after, showing Rewards claimed. This
+covers the server claim path, not a synthetic mouse click.
+
+`tools/create-smoke-pack.py` creates only test data: an island repair hook changes
+a vanilla red-concrete marker to emerald and increments a scoreboard counter;
+a quest reward runs `void area set island repaired`. Shipped defaults are not
+changed. `tools/smoke-probe.gradle` builds the separate probe from
+`tools/smoke-probe`; it is not included in the release jar. Set
+`SIMPLEVOID_BOOKS_JAR` to the distributed Books jar when building the probe:
+
+```sh
+export SIMPLEVOID_BOOKS_JAR=/workspace/mods/simplebooks-261/dist/1.2.0/simplebooks-neoforge-26.1.2-1.2.0.jar
+./gradlew -q -I tools/smoke-probe.gradle :neoforge:26.1.2:smokeProbeJar -x test -x javadoc
+# Only after ModDev grants the shared server/client lock:
+bash tools/smoke-simplevoid.sh
+```
+
+The fixture pack must load after `mod_data` before the initial area snapshots are
+created. Full evidence and screenshots are under
+`/workspace/mods/simplevoid-dist/1.0.0/`.
+
+All 221 headless checks also passed for 1.0.0: 63 existing resource checks, 155
+area checks, and 3 checks of the actual NeoForge event-bus bridge. Further coverage
+is still needed for the production ship, ship interior spawns, bed/anchor respawns,
+a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
 M3 area hazards and M4 animated sky are planned for 1.1.0. Simple Books and
 skyblock resource progression are untouched. No custom artwork or icon is bundled.

@@ -1,0 +1,17 @@
+allprojects {
+    afterEvaluate { p ->
+        if (p.path == ':neoforge:26.1.2') {
+            def probe = p.sourceSets.create('smokeProbe') {
+                java.srcDir(rootProject.file('tools/smoke-probe/java'))
+                resources.srcDir(rootProject.file('tools/smoke-probe/resources'))
+                compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath + p.files(System.getenv('SIMPLEVOID_BOOKS_JAR'))
+            }
+            p.tasks.register('smokeProbeJar', Jar) {
+                dependsOn(p.tasks.named('smokeProbeClasses'))
+                from(probe.output)
+                archiveBaseName.set('simplevoid-smoke-probe')
+                destinationDirectory.set(p.layout.buildDirectory.dir('smoke-probe'))
+            }
+        }
+    }
+}
