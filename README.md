@@ -449,4 +449,5 @@ is still needed for the production ship, ship interior spawns, bed/anchor respaw
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
 M3 area hazards and M4 animated sky are planned for 1.1.0. Simple Books and
-skyblock resource progression are untouched. No custom artwork or icon is bundled.
+skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
+bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.

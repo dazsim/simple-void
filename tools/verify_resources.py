@@ -85,6 +85,13 @@ def verify():
             assert placements["distant_example"]["position"]["spawn_offset"] == [256, -3, 0]
             assert not placements["later_example"]["at_creation"]
         print(f"{name} setup: {len(placements)} placements, safe spawn {setup['spawn']['offset']}")
+    logo = RESOURCES / "simplevoid_logo.png"
+    image = logo.read_bytes()
+    assert image[:8] == b"\x89PNG\r\n\x1a\n" and struct.unpack(">II", image[16:24]) == (400, 400)
+    fabric = json.loads((ROOT / "fabric/src/main/resources/fabric.mod.json").read_text())
+    assert fabric["icon"] == logo.name
+    assert f'logoFile = "{logo.name}"' in (ROOT / "neoforge/src/main/resources/META-INF/neoforge.mods.toml").read_text()
+    print("Approved 400 x 400 logo and loader metadata paths verified")
     assert not list(RESOURCES.glob("assets/*/textures/**/"))
     print("Resource checks passed")
 

@@ -26,5 +26,6 @@
   "contact": {
     "sources": "https://github.com/dazsim/simple-void",
     "issues": "https://github.com/dazsim/simple-void/issues"
-  }
+  },
+  "icon": "simplevoid_logo.png"
 }
