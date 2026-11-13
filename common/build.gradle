@@ -51,7 +51,7 @@ repositories {
 }
 dependencies {
     compileOnly 'net.fabricmc:sponge-mixin:0.17.0+mixin.0.8.7'
-    compileOnly 'com.workshopcraft.workshopcore:workshopcore-neoforge-26.1.2:0.5.0-alpha.1'
+    compileOnly 'com.workshopcraft.workshopcore:workshopcore-neoforge-26.1.2:0.5.0'
 }
 
 sourceSets {

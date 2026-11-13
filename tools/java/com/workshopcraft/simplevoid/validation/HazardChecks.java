@@ -153,7 +153,7 @@ public final class HazardChecks {
         var blocked = dispatcher.parse("void area hazards cabin", denied);
         check(blocked.getReader().canRead() || !blocked.getExceptions().isEmpty() || !dispatcher.getRoot().getChild("void").canUse(denied), "Hazards command needs permission 2");
 
-        System.out.println("Passed " + checks + " hazard checks. Workshop Core 0.5.0-alpha.1 damage, wear and haze are wired.");
+        System.out.println("Passed " + checks + " hazard checks. Workshop Core 0.5.0 damage, wear and haze are wired.");
         return checks;
     }
 

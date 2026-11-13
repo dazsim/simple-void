@@ -391,7 +391,7 @@ registration required for commands.
 
 Protective gear is declared in Workshop Core protection files and Simple Void
 item tags (`simplevoid:space_helmets`, `simplevoid:cold_gear`). This build
-bundles Workshop Core 0.5.0-alpha.1 jar-in-jar (range `[0.1,1.0)`). Damage,
+bundles Workshop Core 0.5.0 jar-in-jar (range `[0.1,1.0)`). Damage,
 gear wear and the haze overlay come from that library. Air drain and freeze
 ticks also apply for unprotected survival players. Creative players see haze
 but take no effects or wear. Spectator players are fully exempt. Only players
@@ -537,7 +537,7 @@ Before the optional portal update, all 221 headless checks also passed for 1.0.0
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
-M3 area hazards are in 1.1.0-alpha.1, including Workshop Core 0.5.0-alpha.1
+M3 area hazards are in 1.1.0-alpha.1, including Workshop Core 0.5.0
 damage, gear wear and haze. M4 animated sky comes next. Simple Books and
 skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
