@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.AABB;
 
 public record AreaBounds(BlockPos min, BlockPos max) {
     public static final Codec<AreaBounds> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -32,5 +33,13 @@ public record AreaBounds(BlockPos min, BlockPos max) {
         return pos.getX() >= min.getX() && pos.getX() <= max.getX()
                 && pos.getY() >= min.getY() && pos.getY() <= max.getY()
                 && pos.getZ() >= min.getZ() && pos.getZ() <= max.getZ();
+    }
+
+    public boolean intersects(AABB box) {
+        return box.intersects(min.getX(), min.getY(), min.getZ(), max.getX() + 1.0, max.getY() + 1.0, max.getZ() + 1.0);
+    }
+
+    public AABB aabb() {
+        return new AABB(min.getX(), min.getY(), min.getZ(), max.getX() + 1.0, max.getY() + 1.0, max.getZ() + 1.0);
     }
 }

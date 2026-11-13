@@ -1,0 +1,13 @@
+{
+  "hazard": "simplevoid:damage",
+  "items": [
+    "#simplevoid:space_helmets"
+  ],
+  "slots": [
+    "head"
+  ],
+  "wear": {
+    "amount": 1,
+    "interval_ticks": 20
+  }
+}

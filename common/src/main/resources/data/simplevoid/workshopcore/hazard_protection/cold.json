@@ -1,0 +1,13 @@
+{
+  "hazard": "simplevoid:cold",
+  "items": [
+    "#simplevoid:cold_gear"
+  ],
+  "slots": [
+    "chest"
+  ],
+  "wear": {
+    "amount": 1,
+    "interval_ticks": 20
+  }
+}

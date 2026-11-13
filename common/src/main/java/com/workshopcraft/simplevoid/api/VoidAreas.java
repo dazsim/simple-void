@@ -1,10 +1,14 @@
 package com.workshopcraft.simplevoid.api;
 
 import com.workshopcraft.simplevoid.area.AreaEngine;
+import com.workshopcraft.simplevoid.area.AreaHazard;
+import com.workshopcraft.simplevoid.area.AreaHazards;
 import com.workshopcraft.simplevoid.area.AreaCommandHooks;
 import com.workshopcraft.simplevoid.area.AreaSavedData;
 import com.workshopcraft.simplevoid.area.AreaTransitions;
+import com.workshopcraft.simplevoid.hazard.HazardCatalog;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 
@@ -21,6 +25,20 @@ public final class VoidAreas {
         return set(level, data, data.require(name).id(), state);
     }
     public static boolean setState(ServerLevel level, Identifier id, String state) { return set(level, data(level), id, state); }
+
+    public static List<AreaHazard> getHazards(ServerLevel level, String name) { return getHazards(level, getArea(level, name)); }
+    public static List<AreaHazard> getHazards(ServerLevel level, Identifier id) { return getHazards(level, getArea(level, id)); }
+    public static Map<String, List<AreaHazard>> getDefinedHazards(ServerLevel level, String name) { return getDefinedHazards(level, getArea(level, name)); }
+    public static Map<String, List<AreaHazard>> getDefinedHazards(ServerLevel level, Identifier id) { return getDefinedHazards(level, getArea(level, id)); }
+
+    private static List<AreaHazard> getHazards(ServerLevel level, VoidArea area) {
+        return HazardCatalog.defined(level, area).forState(area.state());
+    }
+
+    private static Map<String, List<AreaHazard>> getDefinedHazards(ServerLevel level, VoidArea area) {
+        AreaHazards hazards = HazardCatalog.defined(level, area);
+        return hazards.byState();
+    }
 
     private static AreaSavedData data(ServerLevel level) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("Access areas on the server thread");

@@ -268,6 +268,13 @@ public final class ResourceChecks {
                 ServerLevelData.class, boolean.class, boolean.class, LevelLoadListener.class).getModifiers()), "Initial spawn mixin target");
         check(Modifier.isStatic(PlayerSpawnFinder.class.getDeclaredMethod("findSpawn", ServerLevel.class, BlockPos.class).getModifiers()), "Player spawn mixin target");
         checks += AreaChecks.run(temporary, lookup, skyblock);
+        WorldSetup shipSetup;
+        try (MultiPackResourceManager manager = manager(resources)) {
+            Files.writeString(SimpleVoid.configFile(), "setup=simplevoid:ship\n");
+            shipSetup = StartConfig.load(manager, StartConfig.selected(manager));
+            Files.writeString(SimpleVoid.configFile(), "setup=\n");
+        }
+        checks += HazardChecks.run(temporary, shipSetup, defaults);
         System.out.println("Passed " + checks + " headless resource and configuration checks. No server or client started.");
     }
 

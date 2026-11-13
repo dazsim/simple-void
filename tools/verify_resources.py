@@ -98,6 +98,11 @@ def verify():
         assert blocks[x, y, z] == blocks[x, y + 1, z] == "minecraft:air"
         if name == "ship":
             assert blocks[x, template["size"][1] - 1, z] != "minecraft:air"
+            cabin = start["areas"][0]
+            assert cabin["name"] == "cabin"
+            types = [entry["type"] for entry in cabin["hazards"]["damaged"]]
+            assert types == ["simplevoid:no_air", "simplevoid:cold", "simplevoid:damage"]
+            assert "repaired" not in cabin["hazards"]
         if name.startswith("skyblock"):
             assert set(placements) == {"start", "end_portal"}
             portal = placements["end_portal"]
@@ -123,6 +128,18 @@ def verify():
     assert f'logoFile = "{logo.name}"' in (ROOT / "neoforge/src/main/resources/META-INF/neoforge.mods.toml").read_text()
     print("Approved 400 x 400 logo and loader metadata paths verified")
     assert not list(RESOURCES.glob("assets/*/textures/**/"))
+    for name in ("no_air", "cold", "hazard"):
+        damage = json.loads((RESOURCES / f"data/simplevoid/damage_type/{name}.json").read_text())
+        assert damage["scaling"] == "never" and damage["message_id"].startswith("simplevoid.")
+    for tag in ("bypasses_armor", "bypasses_shield", "no_knockback"):
+        values = json.loads((RESOURCES / f"data/minecraft/tags/damage_type/{tag}.json").read_text())["values"]
+        assert values == ["simplevoid:no_air", "simplevoid:cold", "simplevoid:hazard"]
+    for name in ("space_helmets", "cold_gear"):
+        assert json.loads((RESOURCES / f"data/simplevoid/tags/item/{name}.json").read_text())["values"] == []
+    for name, hazard in (("no_air", "simplevoid:no_air"), ("cold", "simplevoid:cold"), ("damage", "simplevoid:damage")):
+        protection = json.loads((RESOURCES / f"data/simplevoid/workshopcore/hazard_protection/{name}.json").read_text())
+        assert protection["hazard"] == hazard and protection["wear"]["amount"] == 1
+    print("Hazard data files verified")
     print("Resource checks passed")
 
 

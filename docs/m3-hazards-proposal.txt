@@ -1,0 +1,92 @@
+Simple Void M3: area hazards
+Proposal only, no code. Target 1.1.0, NeoForge 26.1.2. Workshop Core 0.5.0 supplies damage, gear wear and haze. Simple Void keeps areas, states, tick logic, commands and API. Story progress stays in Simple Books, which already calls /void commands.
+
+1. Workshop Core (required)
+Bundle com.workshopcraft.workshopcore:workshopcore-neoforge-26.1.2:0.5.0 from /workspace/mods/workshopcore-maven, jar-in-jar range [0.1,1.0). Call the 0.5.0 API directly. Do not ship a local copy of damage, protection or haze. Coding starts once the 0.5.0 alpha is in that maven.
+
+  com.workshopcraft.workshopcore.hazard.HazardDamage
+    source(Level, ResourceKey<DamageType>)
+    hurt(LivingEntity, ResourceKey<DamageType>, float)
+  HazardProtection
+    isProtected(Player, Identifier)  // read only, no wear
+    tick(Player, Identifier)         // call every tick while exposed; applies wear on interval; false = apply the effect
+  Haze
+    set(ServerPlayer, int argb, float density, int fadeTicks)
+    clear(ServerPlayer, int fadeTicks)
+    Core resends on respawn and dimension change, and drops on logout. Recompute and set or clear after login, respawn and dimension change so a new position is not left with the old overlay.
+
+Our damage types live in data/simplevoid/damage_type/{no_air,cold,hazard}.json. Protection files live in data/<ns>/workshopcore/hazard_protection/<name>.json.
+
+2. Patterns borrowed from Dire (/workspace/mods/dire-261)
+Dire has no per-area API. We copy behaviour, not gas blocks or particles.
+- Damage type: DireContent.GAS_DAMAGE, data/dire/damage_type/gas.json, and the bypasses_armor, bypasses_shield and no_knockback tags. Applied in Gas.hurt via a DamageSource and hurtServer. We use HazardDamage.hurt with our types, tagged the same way.
+- Gear: Gas.hurt checks EquipmentSlot.HEAD for DireContent.GAS_MASK, then ItemStack.hurtAndBreak using DireConfig.gasMaskWearPerSecond, and returns without damage. Interval in GasBlock.entityInside is every 20 ticks. We use HazardProtection data (items, slots, wear amount and interval) and tick() every tick while exposed.
+- Creative and spectator: Gas.hurt returns early for both. We do the same for effects and wear.
+- Haze: Dire draws translucent GasBlock models (gas_1 to gas_8) plus GasWispParticle. Rooms are empty volumes, so we use Workshop Core's per-player overlay instead of filling areas with blocks.
+
+3. Area JSON
+Optional hazards map on AreaDefinition, next to bounds and initial_state. Keys are states. A missing map, or a state with no list, means no hazards. repaired is not magic: leave that list empty or omit it, and repair clears the effects. At most 8 entries per state. Built-in types: simplevoid:no_air, simplevoid:cold, simplevoid:damage. Unknown types fail pack load.
+
+  "hazards": {
+    "damaged": [
+      { "type": "simplevoid:no_air", "air_per_tick": 1 },
+      { "type": "simplevoid:cold", "freeze_per_tick": 3, "damage": 1, "interval_ticks": 20 },
+      { "type": "simplevoid:damage", "damage": 2, "interval_ticks": 20, "damage_type": "simplevoid:hazard" }
+    ]
+  }
+
+Defaults: air_per_tick 1 (vanilla air is 300). freeze_per_tick 3. damage 1 and interval_ticks 20 for cold and damage. damage_type defaults to simplevoid:cold or simplevoid:hazard. Optional haze object on any entry: { "color": "#80A0C8E6", "density": 0.35, "fade_ticks": 20 }. color is ARGB hex. If haze is omitted, each type has a default (grey, blue, red).
+
+Hazards are not written into AreaSavedData. State, bounds and hooks stay snapshotted as in M2. Hazard lists are read live from the current world setup (including config/simplevoid/world_setup overrides) by placement id and area name, so packs can retune rates without resetting states. If the definition is gone, the area has no hazards.
+
+4. Gear
+Simple Void does not add a suit item. Packs (or later Simple Machines) add gear and point tags at it. We ship empty tags and protection files as the contract:
+
+  data/simplevoid/tags/item/space_helmets.json
+  data/simplevoid/tags/item/cold_gear.json
+  data/simplevoid/workshopcore/hazard_protection/no_air.json
+    { "hazard": "simplevoid:no_air", "items": ["#simplevoid:space_helmets"], "slots": ["head"], "wear": { "amount": 1, "interval_ticks": 20 } }
+  data/simplevoid/workshopcore/hazard_protection/cold.json
+    { "hazard": "simplevoid:cold", "items": ["#simplevoid:cold_gear"], "slots": ["chest"], "wear": { "amount": 1, "interval_ticks": 20 } }
+  data/simplevoid/workshopcore/hazard_protection/damage.json
+    { "hazard": "simplevoid:damage", "items": ["#simplevoid:space_helmets"], "slots": ["head"], "wear": { "amount": 1, "interval_ticks": 20 } }
+
+A pack can add items, extra slots or more protection files under its own namespace. The suit check is this layer, not a fourth hazard type.
+
+5. Runtime
+New HazardEngine in Simple Void, ticked on the server thread. Saved data stays per ServerLevel, so each dimension is independent. Only players are affected, not other mobs.
+
+Each level keeps a short cache of areas whose current state has any hazards, rebuilt on import and on VoidAreaEvents.StateChange. If the cache is empty, the tick is a no-op. A player is inside an area when their bounding box intersects the inclusive block bounds (min corner to max + 1). Overlapping areas union their active hazards. If the same type appears twice, keep the harsher values (higher drain, freeze, damage, or a shorter interval). Do not stack the same type.
+
+Every tick, for each player in the level: skip all effects, wear and haze if hazards=false, or if the player is spectator. Creative players still see haze so pack makers can preview, but take no drain, freeze, damage or wear. For each active hazard call HazardProtection.tick; if it returns false, apply the effect (reduce air, add freeze ticks, or HazardDamage.hurt on that hazard's interval). Air refills and freeze decays using vanilla rules once the player is out of that hazard or is protected. no_air damage (simplevoid:no_air) starts only when air is 0.
+
+Haze: when the player's active set changes, including becoming empty, call Haze.set with the highest-density entry's color, density and fade, or Haze.clear. Ties use definition order. If haze=false, always clear. Recompute also on login, respawn, dimension change and area state change, so repair fades the overlay immediately and a logout does not leave the player stuck.
+
+6. API and commands
+Operator level 2, same as the other /void area commands.
+
+  VoidAreas.getHazards(level, name|id)           // active hazards for the current state, empty if none
+  VoidAreas.getDefinedHazards(level, name|id)    // map of state -> list, from live data
+  VoidAreaEvents.HazardPresence(level, player, previous, current)
+    Fired when that player's active set changes. Non-cancellable. Loader-neutral, plus a NeoForge event like AreaStateChangedEvent.
+
+  /void area hazards <name>
+
+Lists the active types and parameters, then any other defined states. get and list stay as they are.
+
+7. Config (config/simplevoid.properties, both default true)
+  hazards=true   // master switch; areas and states still work when false
+  haze=true      // overlay only
+
+8. Compatibility
+Existing setups with no hazards field are unchanged. ship.json cabin and skyblock island stay empty until a pack adds lists. Headless checks for current world setups must still pass. M2 saved area files need no migration.
+
+9. Test plan
+Headless (extend tools/java AreaChecks and resource checks): parse and reject bad types or oversized lists; default empty; per-state selection, including repaired with no list; live lookup is not snapshotted; overlap keeps the harsher params; command and API output; both config flags off; current setups still load.
+In-game, once ModDev has given us the test server: stand in a damaged demo area, confirm haze, air drain, freeze and damage; protected gear blocks the matching hazard and wears on interval; repair and leaving the bounds clear effects and haze; creative previews haze only; spectator is fully exempt; two players are independent; login, respawn and dimension change re-apply or clear correctly; hazards=false disables everything.
+
+10. Open questions
+- Should Simple Void ship a basic helmet or suit, or only the tags for other mods to fill?
+- Are vanilla air bubbles and the freeze overlay wanted on top of core haze? This proposal says yes.
+- Should the demo ship cabin include sample hazards for testing, or stay empty?
+- Players only, or should mobs take damage too (Dire hurts all living except undead)?

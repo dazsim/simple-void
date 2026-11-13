@@ -36,7 +36,27 @@
               9
             ]
           },
-          "initial_state": "damaged"
+          "initial_state": "damaged",
+          "hazards": {
+            "damaged": [
+              {
+                "type": "simplevoid:no_air",
+                "air_per_tick": 1
+              },
+              {
+                "type": "simplevoid:cold",
+                "freeze_per_tick": 3,
+                "damage": 1,
+                "interval_ticks": 20
+              },
+              {
+                "type": "simplevoid:damage",
+                "damage": 2,
+                "interval_ticks": 20,
+                "damage_type": "simplevoid:hazard"
+              }
+            ]
+          }
         }
       ]
     }

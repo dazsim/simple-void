@@ -1,3 +1,6 @@
 {
-  "generator.simplevoid.void": "Simple Void"
+  "generator.simplevoid.void": "Simple Void",
+  "death.attack.simplevoid.no_air": "%1$s ran out of air",
+  "death.attack.simplevoid.cold": "%1$s froze to death",
+  "death.attack.simplevoid.hazard": "%1$s was killed by a hazard"
 }

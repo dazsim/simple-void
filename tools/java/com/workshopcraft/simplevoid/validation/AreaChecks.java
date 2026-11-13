@@ -187,7 +187,8 @@ public final class AreaChecks {
                     LevelBasedPermissionSet.forLevel(PermissionLevel.byId(permission)), "checks", Component.literal("checks"), null, null);
             check(dispatcher.getRoot().getChild("void").canUse(source) == (permission >= 2), "Area command permission level " + permission);
             for (String command : List.of("void area list", "void area get island", "void area get homebound:ships/colony/ship/bridge",
-                    "void area set island repaired", "void area set homebound:ships/colony/ship/bridge pressurised.phase-2")) {
+                    "void area set island repaired", "void area set homebound:ships/colony/ship/bridge pressurised.phase-2",
+                    "void area hazards island", "void area hazards homebound:ships/colony/ship/bridge")) {
                 if (permission >= 2) {
                     check(!AreaCommandHooks.parse(dispatcher, source, "/" + command).getReader().canRead(), "Hook parser accepts valid optional slash " + command);
                 } else {

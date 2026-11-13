@@ -1,6 +1,6 @@
 # Simple Void
 
-Version 1.0.0 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
+Version 1.1.0-alpha.1 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
 
 By dazsim / workshopcraft. All Rights Reserved.
 
@@ -10,9 +10,10 @@ Issues: https://github.com/dazsim/simple-void/issues
 A void world preset with reusable, data-driven world setups. A setup places
 several named structures at world creation or later through a command or API.
 One placement is the spawn structure. Named areas attached to placements have
-persistent states, change events and optional command hooks. No custom blocks, items, recipes, portals,
-quests, resource progression, hazards or space backdrop are added. Hull and
-boundary blocks belong to the Simple Machines ship blocks add-on.
+persistent states, change events, optional command hooks and optional area
+hazards. No custom blocks, items, recipes, portals, quests, resource progression
+or space backdrop are added. Protective gear is supplied by packs through item
+tags. Hull and boundary blocks belong to the Simple Machines ship blocks add-on.
 
 ## Create a world
 
@@ -271,6 +272,14 @@ config paths are the same as above. For example, inside the `ship` placement:
 - `on_state_change` is optional. Its `enabled` defaults to false, even when
   commands are supplied. `commands` maps the **new state** to an ordered list,
   at most 64 state entries and 32 nonempty single-line commands per state.
+- `hazards` is optional. It maps a state name to a list of hazard entries, at
+  most 8 per state. Built-in types are `simplevoid:no_air`, `simplevoid:cold`
+  and `simplevoid:damage`. Parameters include `air_per_tick`, `freeze_per_tick`,
+  `damage`, `interval_ticks`, `damage_type` and optional `haze` (`color`,
+  `density`, `fade_ticks`). A missing list, including on `repaired`, means no
+  hazards in that state. Hazard lists are read live from the current world setup,
+  not snapshotted with area state. The bundled ship cabin includes sample
+  hazards while damaged; the skyblock island does not.
 
 The canonical id is `<setup id>/<placement name>/<area name>`, such as
 `homebound:colony/ship/bridge`. A bare area name works only when unique in the
@@ -303,7 +312,8 @@ All require operator level 2 or equivalent. They run in the source dimension:
 ```
 
 `list` shows canonical ids and states; `get` also shows inclusive world bounds.
-Unknown/ambiguous names or invalid states fail without mutation. Setting the
+`/void area hazards <name>` lists the hazards active in the current state, then
+any other states defined on the area. Unknown/ambiguous names or invalid states fail without mutation. Setting the
 current state succeeds without firing another event or rerunning commands.
 
 The bundled start island defines `island`; the demonstration ship defines `cabin`.
@@ -349,13 +359,19 @@ VoidAreas.listAreas(level); // immutable, sorted List<VoidArea>
 VoidAreas.getArea(level, "bridge"); // immutable snapshot
 VoidAreas.getState(level, Identifier.parse("homebound:colony/ship/bridge"));
 boolean changed = VoidAreas.setState(level, "bridge", "repaired");
+VoidAreas.getHazards(level, "cabin"); // active hazards for the current state
+VoidAreas.getDefinedHazards(level, "cabin"); // all states from live data
 var subscription = VoidAreaEvents.listen(change -> {
     // change.level(), change.before(), change.after()
 });
+var hazards = VoidAreaEvents.listenHazards(change -> {
+    // change.level(), change.player(), change.previous(), change.current()
+});
 subscription.close();
+hazards.close();
 ```
 
-`getArea`, `getState` and `setState` accept a short/full string or an `Identifier`.
+`getArea`, `getState`, `setState`, `getHazards` and `getDefinedHazards` accept a short/full string or an `Identifier`.
 An `Identifier` is always a canonical id. Unknown/ambiguous names throw
 `IllegalArgumentException`; wrong-thread/nested mutation throws
 `IllegalStateException` for listener re-entry. State changes return false for a no-op, true for a
@@ -368,9 +384,18 @@ level and immutable before/after snapshots. `listen` returns a closeable
 subscription. Runtime listener failures are isolated and logged. On NeoForge,
 every transition is also posted to `NeoForge.EVENT_BUS` as
 `com.workshopcraft.simplevoid.neoforge.AreaStateChangedEvent`, with `getLevel()`,
-`getBefore()` and `getAfter()`. NeoForge's bus controls its subscriber ordering
+`getBefore()` and `getAfter()`. Player hazard-set changes are posted as
+`PlayerHazardsChangedEvent`. NeoForge's bus controls its subscriber ordering
 and exception handling. There is no Simple Books dependency or custom reward
 registration required for commands.
+
+Protective gear is declared in Workshop Core protection files and Simple Void
+item tags (`simplevoid:space_helmets`, `simplevoid:cold_gear`). This build
+bundles Workshop Core 0.4.0 jar-in-jar. Damage, gear wear and the haze overlay
+are stubbed until Workshop Core 0.5.0 is available; air drain and freeze ticks
+already apply for unprotected survival players. Creative players see haze only
+(once 0.5.0 lands). Spectator players are fully exempt. Only players are affected.
+Config keys `hazards` and `haze` in `config/simplevoid.properties` default to true.
 
 ### Simple Books quest rewards
 
@@ -511,13 +536,19 @@ Before the optional portal update, all 221 headless checks also passed for 1.0.0
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
-M3 area hazards and M4 animated sky are planned for 1.1.0. Simple Books and
+M3 area hazards are in 1.1.0-alpha.1. JSON, presence tracking, commands, API,
+config, tags, damage types and the demo ship cabin are in place. Workshop Core
+0.5.0 damage, gear wear and haze are still waiting on that artifact, so those
+three calls stay behind a stub. M4 animated sky comes next. Simple Books and
 skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
 
-The default-platform cleanup and optional zero-eye portal pass 266 headless checks
+The default-platform cleanup and optional zero-eye portal passed 266 headless checks
 (263 common, including 26 portal checks, plus 3 NeoForge event-bridge checks) and
-the Python resource checks. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
+the Python resource checks. This M3 alpha raises that to 324 Java headless checks
+(319 common, including 175 area checks, 36 hazard checks and 26 portal checks, plus
+5 NeoForge event-bridge checks) and the Python resource checks, which now also
+cover hazard data files. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
 rotations, vanilla portal-pattern matching after eyes are inserted, and saved
 portal duplicate markers. No server/client was started for this resource update;
 the recorded in-game screenshots and results predate it.

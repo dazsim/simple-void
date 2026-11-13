@@ -29,6 +29,8 @@ public final class VoidCommands {
                         .then(Commands.literal("list").executes(context -> areas(context, "list")))
                         .then(Commands.literal("get").then(Commands.argument("name", IdentifierArgument.id())
                                 .suggests(VoidCommands::suggestAreas).executes(context -> areas(context, "get"))))
+                        .then(Commands.literal("hazards").then(Commands.argument("name", IdentifierArgument.id())
+                                .suggests(VoidCommands::suggestAreas).executes(context -> areas(context, "hazards"))))
                         .then(Commands.literal("set").then(Commands.argument("name", IdentifierArgument.id())
                                 .suggests(VoidCommands::suggestAreas)
                                 .then(Commands.argument("state", StringArgumentType.word())
@@ -67,6 +69,18 @@ public final class VoidCommands {
                 source.sendSuccess(() -> Component.literal(area.id() + " = " + area.state() + "; bounds "
                         + area.bounds().min().toShortString() + " to " + area.bounds().max().toShortString()), false);
                 return 1;
+            }
+            if (action.equals("hazards")) {
+                var active = VoidAreas.getHazards(source.getLevel(), area.id());
+                var defined = VoidAreas.getDefinedHazards(source.getLevel(), area.id());
+                source.sendSuccess(() -> Component.literal(area.id() + " state=" + area.state() + " active=" + active.size()), false);
+                for (var hazard : active) source.sendSuccess(() -> Component.literal("  " + hazard.describe()), false);
+                for (var entry : defined.entrySet()) {
+                    if (entry.getKey().equals(area.state())) continue;
+                    String label = entry.getValue().isEmpty() ? "none" : String.join(", ", entry.getValue().stream().map(h -> h.type().toString()).toList());
+                    source.sendSuccess(() -> Component.literal("  defined " + entry.getKey() + ": " + label), false);
+                }
+                return Math.max(1, active.size());
             }
             String state = StringArgumentType.getString(context, "state");
             boolean changed = VoidAreas.setState(source.getLevel(), area.id(), state);

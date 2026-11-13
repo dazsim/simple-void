@@ -22,7 +22,7 @@ public final class StartConfig {
         try {
             if (!Files.exists(file)) {
                 Files.createDirectories(file.getParent());
-                Files.writeString(file, "# Blank uses the data pack selector. Example: setup=simplevoid:ship\nsetup=\n", StandardCharsets.UTF_8);
+                Files.writeString(file, "# Blank uses the data pack selector. Example: setup=simplevoid:ship\nsetup=\n# Area hazards. false leaves areas and states working, with no effects, wear or haze.\nhazards=true\n# Client haze overlay while standing in a hazardous area.\nhaze=true\n", StandardCharsets.UTF_8);
             }
             Properties properties = new Properties();
             try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
