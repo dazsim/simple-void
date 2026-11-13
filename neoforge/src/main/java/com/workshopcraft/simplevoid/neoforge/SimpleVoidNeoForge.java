@@ -3,6 +3,7 @@ package com.workshopcraft.simplevoid.neoforge;
 import com.workshopcraft.simplevoid.SimpleVoid;
 import com.workshopcraft.simplevoid.api.VoidAreaEvents;
 import com.workshopcraft.simplevoid.area.AreaEngine;
+import com.workshopcraft.simplevoid.backdrop.BackdropHookEngine;
 import com.workshopcraft.simplevoid.command.VoidCommands;
 import com.workshopcraft.simplevoid.hazard.HazardCatalog;
 import com.workshopcraft.simplevoid.hazard.HazardEngine;
@@ -22,6 +23,7 @@ public final class SimpleVoidNeoForge {
     public SimpleVoidNeoForge() {
         SimpleVoid.initialize(FMLPaths.CONFIGDIR.get(), id -> ModList.get().isLoaded(id));
         VoidConfig.reload();
+        BackdropHookEngine.initialize();
         forwardAreaChanges();
         forwardHazardChanges();
         NeoForge.EVENT_BUS.addListener((ServerStartedEvent event) -> {

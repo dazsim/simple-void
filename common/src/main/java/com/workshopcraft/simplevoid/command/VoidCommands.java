@@ -1,10 +1,12 @@
 package com.workshopcraft.simplevoid.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.workshopcraft.simplevoid.api.VoidBackdrops;
 import com.workshopcraft.simplevoid.api.VoidPlacements;
 import com.workshopcraft.simplevoid.api.VoidAreas;
 import com.workshopcraft.simplevoid.start.StartConfig;
@@ -36,6 +38,18 @@ public final class VoidCommands {
                                 .then(Commands.argument("state", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(List.of("damaged", "repaired"), builder))
                                         .executes(context -> areas(context, "set"))))))
+                .then(Commands.literal("backdrop")
+                        .then(Commands.literal("get").executes(VoidCommands::backdropGet))
+                        .then(Commands.literal("clear")
+                                .executes(context -> backdropClear(context, Integer.MIN_VALUE))
+                                .then(Commands.argument("ticks", IntegerArgumentType.integer(0, 1200))
+                                        .executes(context -> backdropClear(context, IntegerArgumentType.getInteger(context, "ticks")))))
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("id", IdentifierArgument.id())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(VoidBackdrops.ids(), builder))
+                                        .executes(context -> backdropSet(context, Integer.MIN_VALUE))
+                                        .then(Commands.argument("ticks", IntegerArgumentType.integer(0, 1200))
+                                                .executes(context -> backdropSet(context, IntegerArgumentType.getInteger(context, "ticks")))))))
                 .then(Commands.literal("place")
                         .then(Commands.argument("setup_or_placement", IdentifierArgument.id())
                                 .executes(context -> place(context, null))
@@ -111,6 +125,50 @@ public final class VoidCommands {
             source.sendSuccess(() -> Component.literal("Simple Void: placed " + result.placed().size()
                     + ", already placed " + result.alreadyPlaced().size() + ", conditions not met " + result.conditionFailed().size()), true);
             return result.placed().size();
+        } catch (RuntimeException exception) {
+            source.sendFailure(Component.literal("Simple Void: " + exception.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int backdropGet(CommandContext<CommandSourceStack> context) {
+        var source = context.getSource();
+        try {
+            var level = source.getLevel();
+            VoidBackdrops.get(level).ifPresentOrElse(
+                    id -> source.sendSuccess(() -> Component.literal("Backdrop for " + level.dimension().identifier() + " is " + id), false),
+                    () -> source.sendSuccess(() -> Component.literal("Backdrop for " + level.dimension().identifier() + " is vanilla"), false));
+            return 1;
+        } catch (RuntimeException exception) {
+            source.sendFailure(Component.literal("Simple Void: " + exception.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int backdropSet(CommandContext<CommandSourceStack> context, int ticks) {
+        var source = context.getSource();
+        try {
+            Identifier id = IdentifierArgument.getId(context, "id");
+            if (!VoidBackdrops.exists(id)) throw new IllegalArgumentException("Unknown backdrop " + id);
+            var level = source.getLevel();
+            if (ticks == Integer.MIN_VALUE) VoidBackdrops.set(level, id);
+            else VoidBackdrops.set(level, id, ticks);
+            source.sendSuccess(() -> Component.literal("Set backdrop for " + level.dimension().identifier() + " to " + id), true);
+            return 1;
+        } catch (RuntimeException exception) {
+            source.sendFailure(Component.literal("Simple Void: " + exception.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int backdropClear(CommandContext<CommandSourceStack> context, int ticks) {
+        var source = context.getSource();
+        try {
+            var level = source.getLevel();
+            if (ticks == Integer.MIN_VALUE) VoidBackdrops.clear(level);
+            else VoidBackdrops.clear(level, ticks);
+            source.sendSuccess(() -> Component.literal("Cleared backdrop for " + level.dimension().identifier()), true);
+            return 1;
         } catch (RuntimeException exception) {
             source.sendFailure(Component.literal("Simple Void: " + exception.getMessage()));
             return 0;

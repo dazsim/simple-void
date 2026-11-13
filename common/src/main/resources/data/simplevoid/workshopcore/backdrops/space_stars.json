@@ -1,0 +1,11 @@
+{
+  "transition": {
+    "duration_ticks": 80,
+    "mode": "auto"
+  },
+  "layers": [
+    { "type": "color", "color": "#000008" },
+    { "type": "gradient", "top": "#000010", "horizon": "#0a1028", "bottom": "#000000" },
+    { "type": "stars", "count": 2500, "brightness": 1.0, "seed": 26, "rotate_with_time": false, "drift": 0.15 }
+  ]
+}

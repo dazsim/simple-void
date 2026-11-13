@@ -1,6 +1,6 @@
 # Simple Void
 
-Version 1.1.0-alpha.1 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
+Version 1.1.0-alpha.2 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
 
 By dazsim / workshopcraft. All Rights Reserved.
 
@@ -11,9 +11,10 @@ A void world preset with reusable, data-driven world setups. A setup places
 several named structures at world creation or later through a command or API.
 One placement is the spawn structure. Named areas attached to placements have
 persistent states, change events, optional command hooks and optional area
-hazards. No custom blocks, items, recipes, portals, quests, resource progression
-or space backdrop are added. Protective gear is supplied by packs through item
-tags. Hull and boundary blocks belong to the Simple Machines ship blocks add-on.
+hazards, and an optional dimension backdrop applied at world creation.
+No custom blocks, items, recipes, portals, quests or resource progression are
+added, and Simple Void does not render a sky of its own. Protective gear is
+supplied by packs through item tags. Hull and boundary blocks belong to the Simple Machines ship blocks add-on.
 
 ## Create a world
 
@@ -176,6 +177,17 @@ Modded blocks can be used when their mods are installed.
   `min` and `max`. Missing objectives or scores fail. No selectors are evaluated.
   Omitted conditions always pass. Failed conditions remain unplaced and can be
   retried later; they are not polled automatically.
+- `backdrop` is optional. When present, it is a namespaced Workshop Core backdrop
+  id applied once when that setup first creates the Overworld. Afterwards the
+  saved assignment persists, including after a relog or restart. Skyblock setups
+  omit this field and keep the vanilla sky. Do not put a default in
+  `workshopcore/backdrop_defaults.json`, because ship and skyblock share the
+  same dimension.
+- `on_backdrop_change` is optional and matches the shape of area `on_state_change`.
+  `enabled` defaults to false. `commands` maps the new backdrop id, or `vanilla`
+  when the sky is cleared, to at most 32 nonempty single-line commands. Placeholders
+  are `{backdrop}`, `{previous}` and `{dimension}`. Hooks run from
+  `BackdropEvents.listen` when the assignment changes.
 
 The spawn placement must use `fixed` coordinates and `at_creation=true`. Its
 condition must pass at creation. Other placements may be relative to the
@@ -321,6 +333,28 @@ Both start damaged with no hooks. The optional portal defines no areas. The
 smoke-only distant/deferred pads define `distant_pad` and `deferred_pad`. These
 names are examples and do not add gameplay restrictions.
 
+### Backdrop commands
+
+All require operator level 2 or equivalent and apply to the source dimension.
+They are a thin wrapper around Workshop Core backdrops. Simple Void does not
+render a sky of its own.
+
+```text
+/void backdrop get
+/void backdrop set <id> [ticks]
+/void backdrop clear [ticks]
+```
+
+`get` reports the current id or `vanilla`. `set` and `clear` accept an optional
+transition length in ticks (`0` to `1200`). Omitting ticks uses the duration
+from the incoming (or outgoing, for clear) backdrop JSON. The demonstration ship
+ships `simplevoid:space_stars` and `simplevoid:space_warp` (warp direction is
+ship-forward, toward -Z) and applies `space_stars` when that setup first creates
+the world. Skyblock setups stay vanilla.
+
+Simple Books can call the same commands from quest rewards. Story and quest
+progression stay in Simple Books.
+
 ### Hooks and events
 
 A real transition marks the new state for saving, fires change listeners
@@ -369,6 +403,11 @@ var hazards = VoidAreaEvents.listenHazards(change -> {
 });
 subscription.close();
 hazards.close();
+
+`VoidBackdrops` wraps Workshop Core `Backdrops.set`, `clear`, `get` and `exists`,
+including the tick variants. A world setup may name a default backdrop applied
+at first creation through `VoidBackdrops.applySetupDefault`.
+
 ```
 
 `getArea`, `getState`, `setState`, `getHazards` and `getDefinedHazards` accept a short/full string or an `Identifier`.
@@ -392,7 +431,10 @@ registration required for commands.
 Protective gear is declared in Workshop Core protection files and Simple Void
 item tags (`simplevoid:space_helmets`, `simplevoid:cold_gear`). This build
 bundles Workshop Core 0.5.0 jar-in-jar (range `[0.1,1.0)`). Damage,
-gear wear and the haze overlay come from that library. Air drain and freeze
+gear wear, the haze overlay and backdrops come from that library. Workshop Core
+haze density is `0..1`. The demonstration ship cabin uses density `1.0` and an
+opaque colour so the overlay is visible; the full-screen tint is still capped
+by Workshop Core at 40% of density times colour alpha. Air drain and freeze
 ticks also apply for unprotected survival players. Creative players see haze
 but take no effects or wear. Spectator players are fully exempt. Only players
 are affected. Config keys `hazards` and `haze` in `config/simplevoid.properties`
@@ -537,17 +579,17 @@ Before the optional portal update, all 221 headless checks also passed for 1.0.0
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
-M3 area hazards are in 1.1.0-alpha.1, including Workshop Core 0.5.0
-damage, gear wear and haze. M4 animated sky comes next. Simple Books and
-skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
+M3 area hazards shipped in 1.1.0-alpha.1. This 1.1.0-alpha.2 build adds M4
+space backdrops on Workshop Core 0.5.0 and raises the demonstration cabin haze
+to maximum density. Simple Books and skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
 
 The default-platform cleanup and optional zero-eye portal passed 266 headless checks
 (263 common, including 26 portal checks, plus 3 NeoForge event-bridge checks) and
-the Python resource checks. This M3 alpha raises that to 325 Java headless checks
-(320 common, including 175 area checks, 37 hazard checks and 26 portal checks, plus
+the Python resource checks. This M4 alpha raises that to 349 Java headless checks
+(344 common, including 175 area checks, 38 hazard checks, 23 backdrop checks and 26 portal checks, plus
 5 NeoForge event-bridge checks) and the Python resource checks, which now also
-cover hazard data files. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
+cover hazard and backdrop data files. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
 rotations, vanilla portal-pattern matching after eyes are inserted, and saved
 portal duplicate markers. No server/client was started for this resource update;
 the recorded in-game screenshots and results predate it.

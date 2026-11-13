@@ -1,6 +1,7 @@
 package com.workshopcraft.simplevoid.start;
 
 import com.workshopcraft.simplevoid.SimpleVoid;
+import com.workshopcraft.simplevoid.api.VoidBackdrops;
 import com.workshopcraft.simplevoid.setup.WorldSetup;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -46,6 +47,7 @@ public final class VoidStart {
                 throw new IllegalStateException("Spawn needs a solid floor and two clear, dry blocks: " + setup.spawnPosition());
             }
             state.select(id, new StartState.SpawnPoint(setup.spawnPosition(), setup.spawn().yaw()));
+            VoidBackdrops.applySetupDefault(level, setup);
         }
         var spawn = state.spawn().orElseThrow();
         levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), spawn.pos(), spawn.yaw(), 0.0F));

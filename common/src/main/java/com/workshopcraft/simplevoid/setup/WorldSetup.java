@@ -3,17 +3,27 @@ package com.workshopcraft.simplevoid.setup;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.workshopcraft.simplevoid.backdrop.BackdropHooks;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
-public record WorldSetup(Spawn spawn, List<StructurePlacement> placements) {
+public record WorldSetup(Spawn spawn, List<StructurePlacement> placements, Optional<Identifier> backdrop,
+                         BackdropHooks onBackdropChange) {
     public static final Codec<WorldSetup> CODEC = RecordCodecBuilder.<WorldSetup>create(instance -> instance.group(
             Spawn.CODEC.fieldOf("spawn").forGetter(WorldSetup::spawn),
-            StructurePlacement.CODEC.listOf().fieldOf("placements").forGetter(WorldSetup::placements)
+            StructurePlacement.CODEC.listOf().fieldOf("placements").forGetter(WorldSetup::placements),
+            Identifier.CODEC.optionalFieldOf("backdrop").forGetter(WorldSetup::backdrop),
+            BackdropHooks.CODEC.optionalFieldOf("on_backdrop_change", BackdropHooks.NONE).forGetter(WorldSetup::onBackdropChange)
     ).apply(instance, WorldSetup::new)).validate(WorldSetup::validate);
+
+    public WorldSetup(Spawn spawn, List<StructurePlacement> placements) {
+        this(spawn, placements, Optional.empty(), BackdropHooks.NONE);
+    }
 
     private static DataResult<WorldSetup> validate(WorldSetup setup) {
         if (setup.placements.isEmpty() || setup.placements.size() > 128) return DataResult.error(() -> "Setup needs 1 to 128 placements");

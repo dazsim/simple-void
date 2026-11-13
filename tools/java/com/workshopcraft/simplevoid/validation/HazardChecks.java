@@ -80,6 +80,9 @@ public final class HazardChecks {
 
         var shipHazards = ship.spawnPlacement().areas().getFirst().hazards();
         check(shipHazards.forState("damaged").size() == 3, "Demo ship cabin has sample hazards");
+        var cabinHaze = shipHazards.forState("damaged").getFirst().hazeOrDefault();
+        check(cabinHaze.density() == 1.0F && HazeSpec.formatColor(cabinHaze.color()).startsWith("#FF"),
+                "Demo ship cabin haze uses max density and opaque color");
         check(shipHazards.forState("repaired").isEmpty(), "Demo ship repaired state has no hazards");
         check(!skyblock.spawnPlacement().areas().getFirst().hazards().defined(), "Skyblock island has no hazards");
 

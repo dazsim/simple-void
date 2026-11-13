@@ -103,7 +103,12 @@ def verify():
             types = [entry["type"] for entry in cabin["hazards"]["damaged"]]
             assert types == ["simplevoid:no_air", "simplevoid:cold", "simplevoid:damage"]
             assert "repaired" not in cabin["hazards"]
+            assert setup["backdrop"] == "simplevoid:space_stars"
+            assert "on_backdrop_change" not in setup
+            haze = cabin["hazards"]["damaged"][0]["haze"]
+            assert haze["density"] == 1.0 and haze["color"].startswith("#FF")
         if name.startswith("skyblock"):
+            assert "backdrop" not in setup and "on_backdrop_change" not in setup
             assert set(placements) == {"start", "end_portal"}
             portal = placements["end_portal"]
             assert portal["structure"] == "simplevoid:end_portal_island"
@@ -140,6 +145,14 @@ def verify():
         protection = json.loads((RESOURCES / f"data/simplevoid/workshopcore/hazard_protection/{name}.json").read_text())
         assert protection["hazard"] == hazard and protection["wear"]["amount"] == 1
     print("Hazard data files verified")
+    assert not (RESOURCES / "data/simplevoid/workshopcore/backdrop_defaults.json").exists()
+    stars = json.loads((RESOURCES / "data/simplevoid/workshopcore/backdrops/space_stars.json").read_text())
+    warp = json.loads((RESOURCES / "data/simplevoid/workshopcore/backdrops/space_warp.json").read_text())
+    assert any(layer["type"] == "stars" for layer in stars["layers"])
+    assert all(layer["type"] != "warp" for layer in stars["layers"])
+    warp_layer = next(layer for layer in warp["layers"] if layer["type"] == "warp")
+    assert warp_layer["direction"] == {"yaw": 0, "pitch": 0}
+    print("Backdrop data files verified")
     print("Resource checks passed")
 
 

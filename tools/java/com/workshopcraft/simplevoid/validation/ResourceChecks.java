@@ -275,6 +275,11 @@ public final class ResourceChecks {
             Files.writeString(SimpleVoid.configFile(), "setup=\n");
         }
         checks += HazardChecks.run(temporary, shipSetup, defaults);
+        WorldSetup portalSetup;
+        try (MultiPackResourceManager manager = manager(resources)) {
+            portalSetup = StartConfig.load(manager, SimpleVoid.id("skyblock_end_portal"));
+        }
+        checks += BackdropChecks.run(resources, shipSetup, defaults, portalSetup);
         System.out.println("Passed " + checks + " headless resource and configuration checks. No server or client started.");
     }
 

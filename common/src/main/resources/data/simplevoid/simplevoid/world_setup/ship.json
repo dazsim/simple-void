@@ -8,6 +8,7 @@
     ],
     "yaw": 180
   },
+  "backdrop": "simplevoid:space_stars",
   "placements": [
     {
       "name": "ship",
@@ -41,19 +42,34 @@
             "damaged": [
               {
                 "type": "simplevoid:no_air",
-                "air_per_tick": 1
+                "air_per_tick": 1,
+                "haze": {
+                  "color": "#FF8899AA",
+                  "density": 1.0,
+                  "fade_ticks": 20
+                }
               },
               {
                 "type": "simplevoid:cold",
                 "freeze_per_tick": 3,
                 "damage": 1,
-                "interval_ticks": 20
+                "interval_ticks": 20,
+                "haze": {
+                  "color": "#FF70A8D0",
+                  "density": 0.95,
+                  "fade_ticks": 20
+                }
               },
               {
                 "type": "simplevoid:damage",
                 "damage": 2,
                 "interval_ticks": 20,
-                "damage_type": "simplevoid:hazard"
+                "damage_type": "simplevoid:hazard",
+                "haze": {
+                  "color": "#FFE65050",
+                  "density": 0.9,
+                  "fade_ticks": 20
+                }
               }
             ]
           }
