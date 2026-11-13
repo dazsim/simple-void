@@ -391,11 +391,12 @@ registration required for commands.
 
 Protective gear is declared in Workshop Core protection files and Simple Void
 item tags (`simplevoid:space_helmets`, `simplevoid:cold_gear`). This build
-bundles Workshop Core 0.4.0 jar-in-jar. Damage, gear wear and the haze overlay
-are stubbed until Workshop Core 0.5.0 is available; air drain and freeze ticks
-already apply for unprotected survival players. Creative players see haze only
-(once 0.5.0 lands). Spectator players are fully exempt. Only players are affected.
-Config keys `hazards` and `haze` in `config/simplevoid.properties` default to true.
+bundles Workshop Core 0.5.0-alpha.1 jar-in-jar (range `[0.1,1.0)`). Damage,
+gear wear and the haze overlay come from that library. Air drain and freeze
+ticks also apply for unprotected survival players. Creative players see haze
+but take no effects or wear. Spectator players are fully exempt. Only players
+are affected. Config keys `hazards` and `haze` in `config/simplevoid.properties`
+default to true.
 
 ### Simple Books quest rewards
 
@@ -536,17 +537,15 @@ Before the optional portal update, all 221 headless checks also passed for 1.0.0
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
-M3 area hazards are in 1.1.0-alpha.1. JSON, presence tracking, commands, API,
-config, tags, damage types and the demo ship cabin are in place. Workshop Core
-0.5.0 damage, gear wear and haze are still waiting on that artifact, so those
-three calls stay behind a stub. M4 animated sky comes next. Simple Books and
+M3 area hazards are in 1.1.0-alpha.1, including Workshop Core 0.5.0-alpha.1
+damage, gear wear and haze. M4 animated sky comes next. Simple Books and
 skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
 
 The default-platform cleanup and optional zero-eye portal passed 266 headless checks
 (263 common, including 26 portal checks, plus 3 NeoForge event-bridge checks) and
-the Python resource checks. This M3 alpha raises that to 324 Java headless checks
-(319 common, including 175 area checks, 36 hazard checks and 26 portal checks, plus
+the Python resource checks. This M3 alpha raises that to 325 Java headless checks
+(320 common, including 175 area checks, 37 hazard checks and 26 portal checks, plus
 5 NeoForge event-bridge checks) and the Python resource checks, which now also
 cover hazard data files. Coverage includes config/data-pack enabling, fixed/spawn-relative positions, all four
 rotations, vanilla portal-pattern matching after eyes are inserted, and saved

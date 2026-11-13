@@ -8,9 +8,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Damage, protective-gear wear and haze come from Workshop Core 0.5.0
- * ({@code com.workshopcraft.workshopcore.hazard}). That version is not in the
- * local maven yet, so a stub is used until it is.
+ * Damage, protective-gear wear and haze are provided by Workshop Core
+ * ({@code com.workshopcraft.workshopcore.hazard}).
  */
 public interface HazardServices {
     boolean isProtected(Player player, Identifier hazard);
@@ -32,7 +31,7 @@ public interface HazardServices {
     }
 
     final class Holder {
-        private static HazardServices CURRENT = new StubHazardServices();
+        private static HazardServices CURRENT = new WorkshopCoreHazardServices();
 
         private Holder() {}
     }

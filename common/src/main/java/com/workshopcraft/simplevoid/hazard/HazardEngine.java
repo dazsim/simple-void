@@ -1,6 +1,7 @@
 package com.workshopcraft.simplevoid.hazard;
 
 import com.workshopcraft.simplevoid.api.VoidArea;
+import com.workshopcraft.workshopcore.hazard.HazardDamage;
 import com.workshopcraft.simplevoid.api.VoidAreaEvents;
 import com.workshopcraft.simplevoid.area.AreaBounds;
 import com.workshopcraft.simplevoid.area.AreaEngine;
@@ -13,9 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
@@ -108,7 +107,7 @@ public final class HazardEngine {
             boolean due = (player.tickCount + player.getId()) % hazard.intervalTicks() == 0 && hazard.damage() > 0;
             boolean noAirReady = !hazard.type().equals(AreaHazard.NO_AIR) || player.getAirSupply() <= 0;
             if (due && noAirReady) {
-                services.hurt(player, ResourceKey.create(Registries.DAMAGE_TYPE, hazard.damageType()), hazard.damage());
+                services.hurt(player, HazardDamage.key(hazard.damageType()), hazard.damage());
             }
         }
     }

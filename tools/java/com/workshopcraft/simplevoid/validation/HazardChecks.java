@@ -17,7 +17,7 @@ import com.workshopcraft.simplevoid.command.VoidCommands;
 import com.workshopcraft.simplevoid.hazard.HazardCatalog;
 import com.workshopcraft.simplevoid.hazard.HazardEngine;
 import com.workshopcraft.simplevoid.hazard.HazardServices;
-import com.workshopcraft.simplevoid.hazard.StubHazardServices;
+import com.workshopcraft.simplevoid.hazard.WorkshopCoreHazardServices;
 import com.workshopcraft.simplevoid.hazard.VoidConfig;
 import com.workshopcraft.simplevoid.setup.StructurePlacement;
 import com.workshopcraft.simplevoid.setup.WorldSetup;
@@ -113,11 +113,9 @@ public final class HazardChecks {
         check(HazardEngine.shouldShowHaze(true, true, false) && !HazardEngine.shouldShowHaze(true, true, true), "Spectator skips haze, creative does not");
         check(HazardEngine.overlay(shipHazards.forState("damaged")) != null, "Active hazards pick a haze overlay");
 
-        check(HazardServices.get() instanceof StubHazardServices, "Core calls use the 0.5.0 stub");
-        HazardServices.get().hurt(null, null, 1.0F);
-        HazardServices.get().setHaze(null, 0, 0.0F, 0);
-        HazardServices.get().clearHaze(null, 0);
-        check(!HazardServices.get().isProtected(null, AreaHazard.NO_AIR) && !HazardServices.get().tickProtection(null, AreaHazard.NO_AIR), "Stub leaves the player unprotected");
+        check(Class.forName("com.workshopcraft.workshopcore.hazard.HazardDamage") != null, "Workshop Core hazard API is on the classpath");
+        check(HazardServices.get() instanceof WorkshopCoreHazardServices, "Core-backed hazard services are active");
+        check(com.workshopcraft.workshopcore.hazard.HazardDamage.key(AreaHazard.NO_AIR).identifier().equals(AreaHazard.NO_AIR), "HazardDamage.key uses our damage type ids");
 
         SimpleVoid.initialize(temporary.resolve("hazard-config"));
         Files.createDirectories(SimpleVoid.configFile().getParent());
@@ -155,7 +153,7 @@ public final class HazardChecks {
         var blocked = dispatcher.parse("void area hazards cabin", denied);
         check(blocked.getReader().canRead() || !blocked.getExceptions().isEmpty() || !dispatcher.getRoot().getChild("void").canUse(denied), "Hazards command needs permission 2");
 
-        System.out.println("Passed " + checks + " hazard checks. Core 0.5.0 damage, wear and haze remain stubbed.");
+        System.out.println("Passed " + checks + " hazard checks. Workshop Core 0.5.0-alpha.1 damage, wear and haze are wired.");
         return checks;
     }
 
