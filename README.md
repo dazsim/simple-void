@@ -1,6 +1,6 @@
 # Simple Void
 
-Version 1.1.0-alpha.2 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
+Version 1.1.0-alpha.3 for Minecraft 26.1.2, Java 25 and NeoForge. Mod id: `simplevoid`.
 
 By dazsim / workshopcraft. All Rights Reserved.
 
@@ -579,9 +579,11 @@ Before the optional portal update, all 221 headless checks also passed for 1.0.0
 is still needed for the production ship, ship interior spawns, bed/anchor respawns,
 a normal world, an in-game M1-to-1.0.0 upgrade and other loaders.
 
-M3 area hazards shipped in 1.1.0-alpha.1. This 1.1.0-alpha.2 build adds M4
-space backdrops on Workshop Core 0.5.0 and raises the demonstration cabin haze
-to maximum density. Simple Books and skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
+M3 area hazards shipped in 1.1.0-alpha.1. 1.1.0-alpha.2 added M4 space
+backdrops on Workshop Core 0.5.0 and raised the demonstration cabin haze
+to maximum density. This 1.1.0-alpha.3 build keeps that and makes
+`simplevoid:space_warp` streaks denser, longer, faster and brighter
+through backdrop data only. Simple Books and skyblock resource progression are untouched. Darren's approved 400 x 400 logo is
 bundled unchanged as `simplevoid_logo.png`, referenced by both loader metadata files.
 
 The default-platform cleanup and optional zero-eye portal passed 266 headless checks

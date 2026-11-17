@@ -6,6 +6,6 @@
   "layers": [
     { "type": "color", "color": "#000008" },
     { "type": "gradient", "top": "#000010", "horizon": "#100818", "bottom": "#000000" },
-    { "type": "warp", "count": 120, "speed": 1.2, "length": 10.0, "color": "#a0c8ff", "direction": { "yaw": 0, "pitch": 0 } }
+    { "type": "warp", "count": 320, "speed": 2.5, "length": 26.0, "color": "#ffffff", "spread": 20, "direction": { "yaw": 0, "pitch": 0 } }
   ]
 }
